@@ -16,6 +16,28 @@
 
 #define MAX_COLUMNS 20
 
+BoundingBox beanCollide = {0};
+
+void updateBeanCollide(Camera* camera, int cameraMode) {
+    if(cameraMode == CAMERA_FIRST_PERSON) {
+        beanCollide = (BoundingBox){
+                        (Vector3){camera->position.x - 0.7f, camera->position.y - 1.7f, camera->position.z - 0.7f},
+                        (Vector3){camera->position.x + 0.7f, camera->position.y + 0.9f, camera->position.z + 0.7f}};
+    } else if(cameraMode == CAMERA_THIRD_PERSON) {
+        beanCollide = (BoundingBox){
+                        (Vector3){camera->target.x - 0.7f, camera->target.y - 1.7f, camera->target.z - 0.7f},
+                        (Vector3){camera->target.x + 0.7f, camera->target.y + 0.9f, camera->target.z + 0.7f}};
+    }
+}
+
+bool collisionDetect() {
+    if(CheckCollisionBoxSphere(beanCollide, (Vector3){-1.0f, 0.0f, -2.0f}, 1.0f)) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 //------------------------------------------------------------------------------------
 // Program main entry point
 //------------------------------------------------------------------------------------
@@ -30,8 +52,8 @@ int main(void)
 
     // Define the camera to look into our 3d world (position, target, up vector)
     Camera camera = { 0 };
-    camera.position = (Vector3){ 0.0f, 2.0f, 4.0f };    // Camera position
-    camera.target = (Vector3){ 0.0f, 2.0f, 0.0f };      // Camera looking at point
+    camera.position = (Vector3){ 0.0f, 1.7f, 4.0f };    // Camera position
+    camera.target = (Vector3){ 0.0f, 1.7f, 0.0f };      // Camera looking at point
     camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };          // Camera up vector (rotation towards target)
     camera.fovy = 60.0f;                                // Camera field-of-view Y
     camera.projection = CAMERA_PERSPECTIVE;             // Camera projection type
@@ -76,9 +98,10 @@ int main(void)
             if(cameraMode != CAMERA_FIRST_PERSON) {
                 cameraMode = CAMERA_FIRST_PERSON;
                 camera.up = (Vector3){ 0.0f, 1.0f, 0.0f }; // Reset roll
-                camera.target.y = 2.0f;
+                camera.target.y = 1.7f;
                 camera.position = camera.target;
                 camera.target.x = camera.target.x + 4.0f; // TODO: make this better somehow
+                updateBeanCollide(&camera, cameraMode);
             }
         }
 
@@ -87,72 +110,29 @@ int main(void)
             if(cameraMode != CAMERA_THIRD_PERSON) {
                 cameraMode = CAMERA_THIRD_PERSON;
                 camera.up = (Vector3){ 0.0f, 1.0f, 0.0f }; // Reset roll
-                camera.position.y = 2.0f;
+                camera.position.y = 1.7f;
                 camera.target = camera.position;
                 camera.position.x = camera.position.x - 4.0f; // TODO: make this better somehow
+                updateBeanCollide(&camera, cameraMode);
             }
         }
 
-        /*
-        if (IsKeyPressed(KEY_FOUR))
-        {
-            cameraMode = CAMERA_ORBITAL;
-            camera.up = (Vector3){ 0.0f, 1.0f, 0.0f }; // Reset roll
+        updateBeanCollide(&camera, cameraMode);
+        
+        // Time for camera caluclations
+        Vector3 ogCPos = camera.position;
+        //Vector3 ogCTar = camera.target;
+        UpdateCamera(&camera, cameraMode);
+        // That easy?
+
+        if(collisionDetect()) {
+            //camera.target = ogCTar;
+            camera.position = ogCPos;
         }
 
-        // Switch camera projection
-        if (IsKeyPressed(KEY_P))
-        {
-            if (camera.projection == CAMERA_PERSPECTIVE)
-            {
-                // Create isometric view
-                cameraMode = CAMERA_THIRD_PERSON;
-                // Note: The target distance is related to the render distance in the orthographic projection
-                camera.position = (Vector3){ 0.0f, 2.0f, -100.0f };
-                camera.target = (Vector3){ 0.0f, 2.0f, 0.0f };
-                camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };
-                camera.projection = CAMERA_ORTHOGRAPHIC;
-                camera.fovy = 20.0f; // near plane width in CAMERA_ORTHOGRAPHIC
-                CameraYaw(&camera, -135 * DEG2RAD, true);
-                CameraPitch(&camera, -45 * DEG2RAD, true, true, false);
-            }
-            else if (camera.projection == CAMERA_ORTHOGRAPHIC)
-            {
-                // Reset to default view
-                cameraMode = CAMERA_THIRD_PERSON;
-                camera.position = (Vector3){ 0.0f, 2.0f, 10.0f };
-                camera.target = (Vector3){ 0.0f, 2.0f, 0.0f };
-                camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };
-                camera.projection = CAMERA_PERSPECTIVE;
-                camera.fovy = 60.0f;
-            }
-        }
-        */
+        updateBeanCollide(&camera, cameraMode);
+        // It was not that easy.
 
-        // Update camera computes movement internally depending on the camera mode
-        // Some default standard keyboard/mouse inputs are hardcoded to simplify use
-        // For advance camera controls, it's reecommended to compute camera movement manually
-        UpdateCamera(&camera, cameraMode);                  // Update camera
-
-/*
-        // Camera PRO usage example (EXPERIMENTAL)
-        // This new camera function allows custom movement/rotation values to be directly provided
-        // as input parameters, with this approach, rcamera module is internally independent of raylib inputs
-        UpdateCameraPro(&camera,
-            (Vector3){
-                (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP))*0.1f -      // Move forward-backward
-                (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN))*0.1f,    
-                (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT))*0.1f -   // Move right-left
-                (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))*0.1f,
-                0.0f                                                // Move up-down
-            },
-            (Vector3){
-                GetMouseDelta().x*0.05f,                            // Rotation: yaw
-                GetMouseDelta().y*0.05f,                            // Rotation: pitch
-                0.0f                                                // Rotation: roll
-            },
-            GetMouseWheelMove()*2.0f);                              // Move to target (zoom)
-*/
         //----------------------------------------------------------------------------------
 
         // Draw
@@ -172,9 +152,14 @@ int main(void)
 
                // DrawLine3D(camera.position, camera.target, YELLOW);
 
+               /* This guy is just a test
                DrawCapsule((Vector3){-3.0f, 2.2f, -3.0f}, (Vector3){-3.0f, 1.0f, -3.0f}, 0.7f, 8, 8, beanColor);
                DrawCapsuleWires((Vector3){-3.0f, 2.2f, -3.0f}, (Vector3){-3.0f, 1.0f, -3.0f}, 0.7f, 8, 8, GREEN);
+               */
 
+                DrawSphere((Vector3){-1.0f, 0.0f, -2.0f}, 1.0f, GREEN);
+                //DrawSphereWires((Vector3){1.0f, 0.0f, 2.0f}, 2.0f, 16, 16, LIME);
+              
                 // Draw some cubes around
                 for (int i = 0; i < MAX_COLUMNS; i++)
                 {
@@ -182,13 +167,18 @@ int main(void)
                     DrawCubeWires(positions[i], 2.0f, heights[i], 2.0f, MAROON);
                 }
 
-                // Draw player cube
+                // Draw point at target
+                if (cameraMode == CAMERA_FIRST_PERSON) {
+                    DrawCube(camera.target, 0.5f, 0.5f, 0.5f, YELLOW);
+                    DrawCubeWires(camera.target, 0.5f, 0.5f, 0.5f, DARKPURPLE);
+                }
+
+                // Draw bean
                 if (cameraMode == CAMERA_THIRD_PERSON)
                 {
-                    DrawCapsule((Vector3){camera.target.x, camera.target.y + 0.2f, camera.target.z}, (Vector3){camera.target.x, camera.target.y - 1.0f, camera.target.z}, 0.7f, 8, 8, VIOLET);
-                    DrawCapsuleWires((Vector3){camera.target.x, camera.target.y + 0.2f, camera.target.z}, (Vector3){camera.target.x, camera.target.y - 1.0f, camera.target.z}, 0.7f, 8, 8, GREEN);
-                    // DrawCube(camera.target, 0.5f, 0.5f, 0.5f, PURPLE);
-                    //DrawCubeWires(camera.target, 0.5f, 0.5f, 0.5f, DARKPURPLE);
+                    DrawCapsule((Vector3){camera.target.x, camera.target.y + 0.2f, camera.target.z}, (Vector3){camera.target.x, camera.target.y - 1.0f, camera.target.z}, 0.7f, 8, 8, beanColor);
+                    DrawCapsuleWires((Vector3){camera.target.x, camera.target.y + 0.2f, camera.target.z}, (Vector3){camera.target.x, camera.target.y - 1.0f, camera.target.z}, 0.7f, 8, 8, BLACK);
+                    DrawBoundingBox(beanCollide, VIOLET);
                 }
 
             EndMode3D();
