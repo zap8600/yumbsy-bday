@@ -1,1 +1,1 @@
-rm bin/index.*
+rm ../bin/index.*

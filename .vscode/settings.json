@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "regex": "c",
+        "__node_handle": "c"
+    }
+}

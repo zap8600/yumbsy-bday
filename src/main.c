@@ -11,32 +11,38 @@
 *
 ********************************************************************************************/
 
-#include "raylib.h"
-#include "rcamera.h"
+#include "raylib/raylib.h"
+#include "raylib/rcamera.h"
+#include "raylib/raymath.h"
+#include "objects.h"
+#include "player.h"
 
-#define MAX_COLUMNS 20
+#define ENET_IMPLEMENTATION
+#include "net/net_common.h"
 
-BoundingBox beanCollide = {0};
+#define MAX_COLUMNS 10
 
-void updateBeanCollide(Camera* camera, int cameraMode) {
-    if(cameraMode == CAMERA_FIRST_PERSON) {
-        beanCollide = (BoundingBox){
-                        (Vector3){camera->position.x - 0.7f, camera->position.y - 1.7f, camera->position.z - 0.7f},
-                        (Vector3){camera->position.x + 0.7f, camera->position.y + 0.9f, camera->position.z + 0.7f}};
-    } else if(cameraMode == CAMERA_THIRD_PERSON) {
-        beanCollide = (BoundingBox){
-                        (Vector3){camera->target.x - 0.7f, camera->target.y - 1.7f, camera->target.z - 0.7f},
-                        (Vector3){camera->target.x + 0.7f, camera->target.y + 0.9f, camera->target.z + 0.7f}};
-    }
-}
+Bean beans[MAX_PLAYERS] = { 0 };
 
-bool collisionDetect() {
-    if(CheckCollisionBoxSphere(beanCollide, (Vector3){-1.0f, 0.0f, -2.0f}, 1.0f)) {
-        return true;
-    } else {
-        return false;
-    }
-}
+// the player id of this client
+int LocalPlayerId = -1;
+
+// the enet address we are connected to
+ENetAddress address = { 0 };
+
+// the server object we are connecting to
+ENetPeer* server = { 0 };
+
+// the client peer we are using
+ENetHost* client = { 0 };
+
+// how long in seconds since the last time we sent an update
+double LastInputSend = -100;
+
+// how long to wait between updates (20 update ticks a second)
+double InputUpdateInterval = 1.0f / 20.0f;
+
+double LastNow = 0;
 
 //------------------------------------------------------------------------------------
 // Program main entry point
@@ -50,15 +56,17 @@ int main(void)
 
     InitWindow(screenWidth, screenHeight, "bean game proto - happy bday yumbsy");
 
-    // Define the camera to look into our 3d world (position, target, up vector)
-    Camera camera = { 0 };
-    camera.position = (Vector3){ 0.0f, 1.7f, 4.0f };    // Camera position
-    camera.target = (Vector3){ 0.0f, 1.7f, 0.0f };      // Camera looking at point
-    camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };          // Camera up vector (rotation towards target)
-    camera.fovy = 60.0f;                                // Camera field-of-view Y
-    camera.projection = CAMERA_PERSPECTIVE;             // Camera projection type
+    LocalBean bean = { 0 };
 
-    int cameraMode = CAMERA_FIRST_PERSON;
+    // Define the camera to look into our 3d world (position, target, up vector)
+    bean.transform.translation = (Vector3){ 0.0f, 1.7f, 4.0f };    // Camera position
+    bean.target = (Vector3){ 0.0f, 1.7f, 0.0f };      // Camera looking at point
+    bean.up = (Vector3){ 0.0f, 1.0f, 0.0f };          // Camera up vector (rotation towards target)
+    
+    bean.camera.fovy = 60.0f;                                // Camera field-of-view Y
+    bean.camera.projection = CAMERA_PERSPECTIVE;             // Camera projection type
+    bean.cameraMode = CAMERA_FIRST_PERSON;
+    UpdateCameraWithBean(&bean);
 
     // Generates some random columns
     float heights[MAX_COLUMNS] = { 0 };
@@ -72,7 +80,17 @@ int main(void)
         colors[i] = (Color){ GetRandomValue(20, 255), GetRandomValue(10, 55), 30, 255 };
     }
 
-    Color beanColor = (Color){ GetRandomValue(0, 255), GetRandomValue(0, 255), GetRandomValue(0, 255), GetRandomValue(0, 255) };
+    bean.beanColor = (Color){ GetRandomValue(0, 255), GetRandomValue(0, 255), GetRandomValue(0, 255), GetRandomValue(0, 255) };
+
+    // sphere time
+    Sphere thatSphere = { 0 };
+    thatSphere.position = (Vector3){-1.0f, 1.0f, -2.0f};
+    thatSphere.radius = 1.0f;
+    thatSphere.color = GREEN;
+    thatSphere.sphereCollide = (BoundingBox){
+        Vector3SubtractValue(thatSphere.position, thatSphere.radius),
+        Vector3AddValue(thatSphere.position, thatSphere.radius)
+    };
 
     DisableCursor();                    // Limit cursor to relative movement inside the window
 
@@ -95,42 +113,41 @@ int main(void)
 
         if (IsKeyPressed(KEY_ONE))
         {
-            if(cameraMode != CAMERA_FIRST_PERSON) {
-                cameraMode = CAMERA_FIRST_PERSON;
-                camera.up = (Vector3){ 0.0f, 1.0f, 0.0f }; // Reset roll
-                camera.target.y = 1.7f;
-                camera.position = camera.target;
-                camera.target.x = camera.target.x + 4.0f; // TODO: make this better somehow
-                updateBeanCollide(&camera, cameraMode);
+            if(bean.cameraMode != CAMERA_FIRST_PERSON) {
+                bean.cameraMode = CAMERA_FIRST_PERSON;
+                bean.up = (Vector3){ 0.0f, 1.0f, 0.0f }; // Reset roll
+                UpdateCameraWithBean(&bean);
+                //updateBeanCollide(&camera, cameraMode);
             }
         }
 
         if (IsKeyPressed(KEY_TWO))
         {
-            if(cameraMode != CAMERA_THIRD_PERSON) {
-                cameraMode = CAMERA_THIRD_PERSON;
-                camera.up = (Vector3){ 0.0f, 1.0f, 0.0f }; // Reset roll
-                camera.position.y = 1.7f;
-                camera.target = camera.position;
-                camera.position.x = camera.position.x - 4.0f; // TODO: make this better somehow
-                updateBeanCollide(&camera, cameraMode);
+            if(bean.cameraMode != CAMERA_THIRD_PERSON) {
+                bean.cameraMode = CAMERA_THIRD_PERSON;
+                bean.up = (Vector3){ 0.0f, 1.0f, 0.0f }; // Reset roll
+                UpdateCameraWithBean(&bean);
+                //updateBeanCollide(&camera, cameraMode);
             }
         }
 
-        updateBeanCollide(&camera, cameraMode);
+        //updateBeanCollide(&camera, cameraMode);
         
         // Time for camera caluclations
-        Vector3 ogCPos = camera.position;
+        //Vector3 ogCPos = camera.position;
         //Vector3 ogCTar = camera.target;
-        UpdateCamera(&camera, cameraMode);
+        //UpdateCamera(&camera, cameraMode);
+        UpdateLocalBean(&bean);
         // That easy?
 
-        if(collisionDetect()) {
-            //camera.target = ogCTar;
+        /*
+        if(collisionDetect(&camera)) {
+            camera.target = ogCTar;
             camera.position = ogCPos;
         }
+        */
 
-        updateBeanCollide(&camera, cameraMode);
+        //updateBeanCollide(&camera, cameraMode);
         // It was not that easy.
 
         //----------------------------------------------------------------------------------
@@ -141,7 +158,7 @@ int main(void)
 
             ClearBackground(RAYWHITE);
 
-            BeginMode3D(camera);
+            BeginMode3D(bean.camera);
 
                 DrawPlane((Vector3){ 0.0f, 0.0f, 0.0f }, (Vector2){ 32.0f, 32.0f }, LIGHTGRAY); // Draw ground
                 /*
@@ -157,8 +174,8 @@ int main(void)
                DrawCapsuleWires((Vector3){-3.0f, 2.2f, -3.0f}, (Vector3){-3.0f, 1.0f, -3.0f}, 0.7f, 8, 8, GREEN);
                */
 
-                DrawSphere((Vector3){-1.0f, 0.0f, -2.0f}, 1.0f, GREEN);
-                //DrawSphereWires((Vector3){1.0f, 0.0f, 2.0f}, 2.0f, 16, 16, LIME);
+                DrawSphere(thatSphere.position, thatSphere.radius, thatSphere.color);
+                DrawBoundingBox(thatSphere.sphereCollide, VIOLET);
               
                 // Draw some cubes around
                 for (int i = 0; i < MAX_COLUMNS; i++)
@@ -168,17 +185,15 @@ int main(void)
                 }
 
                 // Draw point at target
-                if (cameraMode == CAMERA_FIRST_PERSON) {
-                    DrawCube(camera.target, 0.5f, 0.5f, 0.5f, YELLOW);
-                    DrawCubeWires(camera.target, 0.5f, 0.5f, 0.5f, DARKPURPLE);
-                }
+                DrawCube(bean.target, 0.5f, 0.5f, 0.5f, YELLOW);
+                DrawCubeWires(bean.target, 0.5f, 0.5f, 0.5f, DARKPURPLE);
 
                 // Draw bean
-                if (cameraMode == CAMERA_THIRD_PERSON)
+                if (bean.cameraMode == CAMERA_THIRD_PERSON)
                 {
-                    DrawCapsule((Vector3){camera.target.x, camera.target.y + 0.2f, camera.target.z}, (Vector3){camera.target.x, camera.target.y - 1.0f, camera.target.z}, 0.7f, 8, 8, beanColor);
-                    DrawCapsuleWires((Vector3){camera.target.x, camera.target.y + 0.2f, camera.target.z}, (Vector3){camera.target.x, camera.target.y - 1.0f, camera.target.z}, 0.7f, 8, 8, BLACK);
-                    DrawBoundingBox(beanCollide, VIOLET);
+                    DrawCapsule(bean.topCap, bean.botCap, 0.7f, 8, 8, bean.beanColor);
+                    DrawCapsuleWires(bean.topCap, bean.botCap, 0.7f, 8, 8, BLACK);
+                    //DrawBoundingBox(beanCollide, VIOLET);
                 }
 
             EndMode3D();
@@ -196,9 +211,9 @@ int main(void)
             DrawRectangleLines(600, 5, 195, 70, BLUE);
 
             DrawText("Camera status:", 610, 15, 10, BLACK);
-            DrawText(TextFormat("- Position: (%06.3f, %06.3f, %06.3f)", camera.position.x, camera.position.y, camera.position.z), 610, 30, 10, BLACK);
-            DrawText(TextFormat("- Target: (%06.3f, %06.3f, %06.3f)", camera.target.x, camera.target.y, camera.target.z), 610, 45, 10, BLACK);
-            DrawText(TextFormat("- Up: (%06.3f, %06.3f, %06.3f)", camera.up.x, camera.up.y, camera.up.z), 610, 60, 10, BLACK);
+            DrawText(TextFormat("- Position: (%06.3f, %06.3f, %06.3f)", bean.camera.position.x, bean.camera.position.y, bean.camera.position.z), 610, 30, 10, BLACK);
+            DrawText(TextFormat("- Target: (%06.3f, %06.3f, %06.3f)", bean.camera.target.x, bean.camera.target.y, bean.camera.target.z), 610, 45, 10, BLACK);
+            DrawText(TextFormat("- Up: (%06.3f, %06.3f, %06.3f)", bean.camera.up.x, bean.camera.up.y, bean.camera.up.z), 610, 60, 10, BLACK);
 
         EndDrawing();
         //----------------------------------------------------------------------------------
@@ -210,4 +225,180 @@ int main(void)
     //--------------------------------------------------------------------------------------
 
     return 0;
+}
+
+// Connect to a server
+void Connect(const char* serverAddress)
+{
+	// startup the network library
+	enet_initialize();
+
+	// create a client that we will use to connect to the server
+	client = enet_host_create(NULL, 1, 1, 0, 0);
+
+	// set the address and port we will connect to
+	enet_address_set_host(&address, serverAddress);
+	address.port = 4545;
+
+	// start the connection process. Will be finished as part of our update
+	server = enet_host_connect(client, &address, 1, 0);
+}
+
+Vector3 ReadPosition(ENetPacket* packet, size_t* offset)
+{
+	Vector3 pos = { 0 };
+	pos.x = ReadShort(packet, offset);
+	pos.y = ReadShort(packet, offset);
+    pos.z = ReadShort(packet, offset);
+
+	return pos;
+}
+
+Color ReadColor(ENetPacket* packet, size_t* offset) {
+    Color color = { 0 };
+    color.r = ReadByte(packet, offset);
+    color.g = ReadByte(packet, offset);
+    color.b = ReadByte(packet, offset);
+    color.a = ReadByte(packet, offset);
+
+    return color;
+}
+
+// A new remote player was added to our local simulation
+void HandleAddPlayer(ENetPacket* packet, size_t* offset)
+{
+	// find out who the server is talking about
+	int remotePlayer = ReadByte(packet, offset);
+	if (remotePlayer >= MAX_PLAYERS || remotePlayer == LocalPlayerId)
+		return;
+
+	// set them as active and update the location
+	beans[remotePlayer].position = ReadPosition(packet, offset);
+    beans[remotePlayer].beanColor = ReadColor(packet, offset);
+    beans[remotePlayer].active = true;
+	beans[remotePlayer].updateTime = LastNow;
+
+	// In a more robust game, this message would have more info about the new player, such as what sprite or model to use, player name, or other data a client would need
+	// this is where static data about the player would be sent, and any initial state needed to setup the local simulation
+}
+
+// A remote player has left the game and needs to be removed from the local simulation
+void HandleRemovePlayer(ENetPacket* packet, size_t* offset)
+{
+	// find out who the server is talking about
+	int remotePlayer = ReadByte(packet, offset);
+	if (remotePlayer >= MAX_PLAYERS || remotePlayer == LocalPlayerId)
+		return;
+
+	// remove the player from the simulation. No other data is needed except the player id
+	beans[remotePlayer].active = false;
+}
+
+// The server has a new position for a player in our local simulation
+void HandleUpdatePlayer(ENetPacket* packet, size_t* offset)
+{
+	// find out who the server is talking about
+	int remotePlayer = ReadByte(packet, offset);
+	if (remotePlayer >= MAX_PLAYERS || remotePlayer == LocalPlayerId || !beans[remotePlayer].active)
+		return;
+
+	// update the last known position and movement
+	beans[remotePlayer].position = ReadPosition(packet, offset);
+    beans[remotePlayer].beanColor = ReadColor(packet, offset);
+	beans[remotePlayer].updateTime = LastNow;
+
+	// in a more robust game this message would have a tick ID for what time this information was valid, and extra info about
+	// what the input state was so the local simulation could do prediction and smooth out the motion
+}
+
+// process one frame of updates
+void Update(double now, float deltaT)
+{
+	LastNow = now;
+	// if we are not connected to anything yet, we can't do anything, so bail out early
+	if (server == NULL)
+		return;
+
+	// Check if we have been accepted, and if so, check the clock to see if it is time for us to send the updated position for the local player
+	// we do this so that we don't spam the server with updates 60 times a second and waste bandwidth
+	// in a real game we'd send our normalized movement vector or input keys along with what the current tick index was
+	// this way the server can know how long it's been since the last update and can do interpolation to know were we are between updates.
+	if (LocalPlayerId >= 0 && now - LastInputSend > InputUpdateInterval)
+	{
+		// Pack up a buffer with the data we want to send
+		uint8_t buffer[10] = { 0 }; // 10 bytes for a 1 byte command number and two bytes for each X and Y value
+		buffer[0] = (uint8_t)UpdateInput;   // this tells the server what kind of data to expect in this packet
+		*(int16_t*)(buffer + 1) = (int16_t)beans[LocalPlayerId].position.x;
+		*(int16_t*)(buffer + 3) = (int16_t)beans[LocalPlayerId].position.y;
+		*(int16_t*)(buffer + 5) = (int16_t)beans[LocalPlayerId].position.z;
+        *(uint8_t*)(buffer + 6) = (uint8_t)beans[LocalPlayerId].beanColor.r;
+        *(uint8_t*)(buffer + 7) = (uint8_t)beans[LocalPlayerId].beanColor.g;
+        *(uint8_t*)(buffer + 8) = (uint8_t)beans[LocalPlayerId].beanColor.b;
+        *(uint8_t*)(buffer + 9) = (uint8_t)beans[LocalPlayerId].beanColor.a;
+
+        // copy this data into a packet provided by enet (TODO : add pack functions that write directly to the packet to avoid the copy)
+		ENetPacket* packet = enet_packet_create(buffer, 10, ENET_PACKET_FLAG_RELIABLE);
+
+		// send the packet to the server
+		enet_peer_send(server, 0, packet);
+
+		// NOTE enet_host_service will handle releasing send packets when the network system has finally sent them,
+		// you don't have to destroy them
+
+		// mark that now was the last time we sent an update
+		LastInputSend = now;
+    }
+
+    // read one event from enet and process it
+	ENetEvent Event = { 0 };
+
+    if (enet_host_service(client, &Event, 0) > 0)
+	{
+		// see what kind of event it is
+		switch (Event.type)
+		{
+			// the server sent us some data, we should process it
+			case ENET_EVENT_TYPE_RECEIVE:
+			{
+				// we know that all valid packets have a size >= 1, so if we get this, something is bad and we ignore it.
+				if (Event.packet->dataLength < 1)
+					break;
+
+				// keep an offset of what data we have read so far
+				size_t offset = 0;
+
+				// read off the command that the server wants us to do
+				NetworkCommands command = (NetworkCommands)ReadByte(Event.packet, &offset);
+
+                // if the server has not accepted us yet, we are limited in what packets we can receive
+				if (LocalPlayerId == -1)
+				{
+					if (command == AcceptPlayer)    // this is the only thing we can do in this state, so ignore anything else
+					{
+						// See who the server says we are
+						LocalPlayerId = ReadByte(Event.packet, &offset);
+
+						// Make sure that it makes sense
+						if (LocalPlayerId < 0 || LocalPlayerId > MAX_PLAYERS)
+						{
+							LocalPlayerId = -1;
+							break;
+						}
+
+						// Force the next frame to do an update by pretending it's been a very long time since our last update
+						LastInputSend = -InputUpdateInterval;
+
+						// We are active
+						beans[LocalPlayerId].active = true;
+
+						// Set our player at some location on the field.
+						// optimally we would do a much more robust connection negotiation where we tell the server what our name is, what we look like
+						// and then the server tells us where we are
+						// But for this simple test, everyone starts at the same place on the field
+						beans[LocalPlayerId].position = (Vector3){ 0.0f, 1.7f, 4.0f };
+					}
+				}
+            }
+        }
+    }
 }
