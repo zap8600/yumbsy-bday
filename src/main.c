@@ -11,9 +11,9 @@
 *
 ********************************************************************************************/
 
-#include "raylib/raylib.h"
-#include "raylib/rcamera.h"
-#include "raylib/raymath.h"
+#include "rlh/raylib.h"
+#include "rlh/rcamera.h"
+#include "rlh/raymath.h"
 #include "objects.h"
 #include "player.h"
 
@@ -21,6 +21,10 @@
 #include "net/net_common.h"
 
 #define MAX_COLUMNS 10
+
+int LocalPlayerId = -1;
+
+Bean beans[MAX_PLAYERS] = { 0 };
 
 // the enet address we are connected to
 ENetAddress address = { 0 };
@@ -61,8 +65,8 @@ int main(void)
     LocalBean bean = { 0 };
 
     // Define the camera to look into our 3d world (position, target, up vector)
-    bean.transform.translation = (Vector3){ 0.0f, 1.7f, 4.0f };    // Camera position
-    bean.target = (Vector3){ 0.0f, 1.7f, 0.0f };      // Camera looking at point
+    //bean.transform.translation = (Vector3){ 0.0f, 1.7f, 4.0f };    // Camera position
+    //bean.target = (Vector3){ 0.0f, 1.7f, 0.0f };      // Camera looking at point
     bean.up = (Vector3){ 0.0f, 1.0f, 0.0f };          // Camera up vector (rotation towards target)
     
     bean.camera.fovy = 60.0f;                                // Camera field-of-view Y
@@ -170,18 +174,25 @@ int main(void)
                 DrawPlane((Vector3){ 0.0f, 0.0f, 0.0f }, (Vector2){ 32.0f, 32.0f }, LIGHTGRAY); // Draw ground
 
                 if (!Connected()) {
-                    DrawText("Connecting", 0, 20, 20, RED);
+                    DrawText("Connecting", 15, 75, 10, BLACK);
                 } else {
-                    DrawText(TextFormat("Player %d", GetLocalPlayerId()), 0, 20, 20, bean.beanColor);
+                    DrawText(TextFormat("Player %d", GetLocalPlayerId()), 15, 75, 10, BLACK);
 
                     for (int i = 0; i < MAX_PLAYERS; i++) {
-                        Vector3 pos = { 0 };
-                        if(GetPlayerPos(i, &pos)) {
-                            DrawCapsule(
-                                (Vector3){pos.x, pos.y + 0.2f, pos.z},
-                                (Vector3){pos.x, pos.y - 1.0f, pos.z},
-                                0.7f, 8, 8, beans[i].beanColor
-                            );
+                        if(i != LocalPlayerId) {
+                            Vector3 pos = { 0 };
+                            if(GetPlayerPos(i, &pos)) {
+                                DrawCapsule(
+                                    (Vector3){pos.x, pos.y + 0.2f, pos.z},
+                                    (Vector3){pos.x, pos.y - 1.0f, pos.z},
+                                    0.7f, 8, 8, beans[i].beanColor
+                                );
+                                DrawCapsuleWires(
+                                    (Vector3){pos.x, pos.y + 0.2f, pos.z},
+                                    (Vector3){pos.x, pos.y - 1.0f, pos.z},
+                                    0.7f, 8, 8, BLACK // an L color tbh
+                                );
+                            }
                         }
                     }
                 }
@@ -226,7 +237,7 @@ int main(void)
 
             // Draw info boxes
             DrawRectangle(5, 5, 330, 70, Fade(RED, 0.5f));
-            DrawRectangleLines(5, 5, 330, 70, BLUE);
+            DrawRectangleLines(5, 5, 330, 85, BLUE);
 
             DrawText("Player controls:", 15, 15, 10, BLACK);
             DrawText("- Move keys: W, A, S, D, Space, Left-Ctrl", 15, 30, 10, BLACK);
@@ -353,18 +364,18 @@ void Update(double now, float deltaT, LocalBean* bean)
 	if (LocalPlayerId >= 0 && now - LastInputSend > InputUpdateInterval)
 	{
 		// Pack up a buffer with the data we want to send
-		uint8_t buffer[10] = { 0 }; // 10 bytes for a 1 byte command number and two bytes for each X and Y value
+		uint8_t buffer[11] = { 0 }; // 10 bytes for a 1 byte command number and two bytes for each X and Y value
 		buffer[0] = (uint8_t)UpdateInput;   // this tells the server what kind of data to expect in this packet
 		*(int16_t*)(buffer + 1) = (int16_t)beans[LocalPlayerId].position.x;
 		*(int16_t*)(buffer + 3) = (int16_t)beans[LocalPlayerId].position.y;
 		*(int16_t*)(buffer + 5) = (int16_t)beans[LocalPlayerId].position.z;
-        *(uint8_t*)(buffer + 6) = (uint8_t)beans[LocalPlayerId].beanColor.r;
-        *(uint8_t*)(buffer + 7) = (uint8_t)beans[LocalPlayerId].beanColor.g;
-        *(uint8_t*)(buffer + 8) = (uint8_t)beans[LocalPlayerId].beanColor.b;
-        *(uint8_t*)(buffer + 9) = (uint8_t)beans[LocalPlayerId].beanColor.a;
+        *(uint8_t*)(buffer + 7) = (uint8_t)beans[LocalPlayerId].beanColor.r;
+        *(uint8_t*)(buffer + 8) = (uint8_t)beans[LocalPlayerId].beanColor.g;
+        *(uint8_t*)(buffer + 9) = (uint8_t)beans[LocalPlayerId].beanColor.b;
+        *(uint8_t*)(buffer + 10) = (uint8_t)beans[LocalPlayerId].beanColor.a;
 
         // copy this data into a packet provided by enet (TODO : add pack functions that write directly to the packet to avoid the copy)
-		ENetPacket* packet = enet_packet_create(buffer, 10, ENET_PACKET_FLAG_RELIABLE);
+		ENetPacket* packet = enet_packet_create(buffer, 11, ENET_PACKET_FLAG_RELIABLE);
 
 		// send the packet to the server
 		enet_peer_send(server, 0, packet);
@@ -422,7 +433,9 @@ void Update(double now, float deltaT, LocalBean* bean)
 						// optimally we would do a much more robust connection negotiation where we tell the server what our name is, what we look like
 						// and then the server tells us where we are
 						// But for this simple test, everyone starts at the same place on the field
-						beans[LocalPlayerId].position = (Vector3){ 0.0f, 1.7f, 4.0f };
+						bean->transform.translation = (Vector3){ 0.0f, 1.7f, 4.0f };    // Camera position
+                        bean->target = (Vector3){ 0.0f, 1.7f, 0.0f };      // Camera looking at point
+                        UpdatePlayerList(bean);
 					}
 				}
                 else // we have been accepted, so process play messages from the server
@@ -494,4 +507,9 @@ bool GetPlayerPos(int id, Vector3* pos)
 		return false;
 
 	*pos = beans[id].position;
+}
+
+void UpdatePlayerList(LocalBean* bean) {
+    beans[LocalPlayerId].position = bean->transform.translation;
+    beans[LocalPlayerId].beanColor = bean->beanColor;
 }

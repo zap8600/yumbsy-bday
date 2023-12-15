@@ -1,7 +1,7 @@
 #include "player.h"
-#include "raylib/raylib.h"
-#include "raylib/rcamera.h"
-#include "raylib/raymath.h"
+#include "rlh/raylib.h"
+#include "rlh/rcamera.h"
+#include "rlh/raymath.h"
 
 void UpdateCameraWithBean(LocalBean* bean) {
     if(bean->cameraMode == CAMERA_FIRST_PERSON) {
@@ -154,7 +154,5 @@ void UpdateLocalBean(LocalBean* bean) {
     bean->botCap = (Vector3){bean->transform.translation.x, bean->transform.translation.y - 1.0f, bean->transform.translation.z};
 
     // update the local player in the player list
-    beans[LocalPlayerId].position.x = bean->transform.translation.x;
-    beans[LocalPlayerId].position.y = bean->transform.translation.y;
-    beans[LocalPlayerId].position.z = bean->transform.translation.z;
+    UpdatePlayerList(bean);
 }
