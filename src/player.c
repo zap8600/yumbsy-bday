@@ -152,4 +152,9 @@ void UpdateLocalBean(LocalBean* bean) {
                         (Vector3){bean->transform.translation.x + 0.7f, bean->transform.translation.y + 0.9f, bean->transform.translation.z + 0.7f}};
     bean->topCap = (Vector3){bean->transform.translation.x, bean->transform.translation.y + 0.2f, bean->transform.translation.z};
     bean->botCap = (Vector3){bean->transform.translation.x, bean->transform.translation.y - 1.0f, bean->transform.translation.z};
+
+    // update the local player in the player list
+    beans[LocalPlayerId].position.x = bean->transform.translation.x;
+    beans[LocalPlayerId].position.y = bean->transform.translation.y;
+    beans[LocalPlayerId].position.z = bean->transform.translation.z;
 }

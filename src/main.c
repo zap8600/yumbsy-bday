@@ -22,11 +22,6 @@
 
 #define MAX_COLUMNS 10
 
-Bean beans[MAX_PLAYERS] = { 0 };
-
-// the player id of this client
-int LocalPlayerId = -1;
-
 // the enet address we are connected to
 ENetAddress address = { 0 };
 
@@ -43,6 +38,13 @@ double LastInputSend = -100;
 double InputUpdateInterval = 1.0f / 20.0f;
 
 double LastNow = 0;
+
+void Connect(const char* serverAddress);
+void Update(double now, float deltaT, LocalBean* bean);
+void Disconnect();
+bool Connected();
+int GetLocalPlayerId();
+bool GetPlayerPos(int id, Vector3* pos);
 
 //------------------------------------------------------------------------------------
 // Program main entry point
@@ -95,6 +97,9 @@ int main(void)
     DisableCursor();                    // Limit cursor to relative movement inside the window
 
     SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
+
+    bool connected = false;
+    bool client = false;
     //--------------------------------------------------------------------------------------
 
     // Main game loop
@@ -131,24 +136,26 @@ int main(void)
             }
         }
 
-        //updateBeanCollide(&camera, cameraMode);
-        
-        // Time for camera caluclations
-        //Vector3 ogCPos = camera.position;
-        //Vector3 ogCTar = camera.target;
-        //UpdateCamera(&camera, cameraMode);
-        UpdateLocalBean(&bean);
-        // That easy?
-
-        /*
-        if(collisionDetect(&camera)) {
-            camera.target = ogCTar;
-            camera.position = ogCPos;
+        if (IsKeyPressed(KEY_THREE))
+        {
+            // setup client
+            if(!client) {
+                client = true;
+                Connect("127.0.0.1");
+            }
         }
-        */
 
-        //updateBeanCollide(&camera, cameraMode);
-        // It was not that easy.
+        //UpdateLocalBean(&bean);
+        
+        if (Connected()) {
+            connected = true;
+            UpdateLocalBean(&bean);
+        } else if (connected) {
+            // they hate us sadge
+            Connect("127.0.0.1");
+            connected = false;
+        }
+        Update(GetTime(), GetFrameTime(), &bean);
 
         //----------------------------------------------------------------------------------
 
@@ -161,6 +168,23 @@ int main(void)
             BeginMode3D(bean.camera);
 
                 DrawPlane((Vector3){ 0.0f, 0.0f, 0.0f }, (Vector2){ 32.0f, 32.0f }, LIGHTGRAY); // Draw ground
+
+                if (!Connected()) {
+                    DrawText("Connecting", 0, 20, 20, RED);
+                } else {
+                    DrawText(TextFormat("Player %d", GetLocalPlayerId()), 0, 20, 20, bean.beanColor);
+
+                    for (int i = 0; i < MAX_PLAYERS; i++) {
+                        Vector3 pos = { 0 };
+                        if(GetPlayerPos(i, &pos)) {
+                            DrawCapsule(
+                                (Vector3){pos.x, pos.y + 0.2f, pos.z},
+                                (Vector3){pos.x, pos.y - 1.0f, pos.z},
+                                0.7f, 8, 8, beans[i].beanColor
+                            );
+                        }
+                    }
+                }
                 /*
                 DrawCube((Vector3){ -16.0f, 2.5f, 0.0f }, 1.0f, 5.0f, 32.0f, BLUE);     // Draw a blue wall
                 DrawCube((Vector3){ 16.0f, 2.5f, 0.0f }, 1.0f, 5.0f, 32.0f, LIME);      // Draw a green wall
@@ -176,13 +200,15 @@ int main(void)
 
                 DrawSphere(thatSphere.position, thatSphere.radius, thatSphere.color);
                 DrawBoundingBox(thatSphere.sphereCollide, VIOLET);
-              
+
+                /*
                 // Draw some cubes around
                 for (int i = 0; i < MAX_COLUMNS; i++)
                 {
-                    DrawCube(positions[i], 2.0f, heights[i], 2.0f, colors[i]);
-                    DrawCubeWires(positions[i], 2.0f, heights[i], 2.0f, MAROON);
+                    //DrawCube(positions[i], 2.0f, heights[i], 2.0f, colors[i]);
+                    //DrawCubeWires(positions[i], 2.0f, heights[i], 2.0f, MAROON);
                 }
+                */
 
                 // Draw point at target
                 DrawCube(bean.target, 0.5f, 0.5f, 0.5f, YELLOW);
@@ -221,6 +247,7 @@ int main(void)
 
     // De-Initialization
     //--------------------------------------------------------------------------------------
+    Disconnect();
     CloseWindow();        // Close window and OpenGL context
     //--------------------------------------------------------------------------------------
 
@@ -312,7 +339,7 @@ void HandleUpdatePlayer(ENetPacket* packet, size_t* offset)
 }
 
 // process one frame of updates
-void Update(double now, float deltaT)
+void Update(double now, float deltaT, LocalBean* bean)
 {
 	LastNow = now;
 	// if we are not connected to anything yet, we can't do anything, so bail out early
@@ -398,7 +425,73 @@ void Update(double now, float deltaT)
 						beans[LocalPlayerId].position = (Vector3){ 0.0f, 1.7f, 4.0f };
 					}
 				}
-            }
-        }
-    }
+                else // we have been accepted, so process play messages from the server
+				{
+					// see what the server wants us to do
+					switch (command)
+					{
+						case AddPlayer:
+							HandleAddPlayer(Event.packet, &offset);
+							break;
+
+						case RemovePlayer:
+							HandleRemovePlayer(Event.packet, &offset);
+							break;
+
+						case UpdatePlayer:
+							HandleUpdatePlayer(Event.packet, &offset);
+							break;
+					}
+				}
+				// tell enet that it can recycle the packet data
+				enet_packet_destroy(Event.packet);
+				break;
+			}
+
+            // we were disconnected, we have a sad
+			case ENET_EVENT_TYPE_DISCONNECT:
+				server = NULL;
+				LocalPlayerId = -1;
+				break;
+		}
+	}
+}
+
+// force a disconnect by shutting down enet
+void Disconnect()
+{
+	// close our connection to the server
+	if (server != NULL)
+		enet_peer_disconnect(server, 0);
+
+	// close our client
+	if (client != NULL)
+		enet_host_destroy(client);
+
+	client = NULL;
+	server = NULL;
+
+	// clean up enet
+	enet_deinitialize();
+}
+
+// true if we are connected and have been accepted
+bool Connected()
+{
+	return server != NULL && LocalPlayerId >= 0;
+}
+
+int GetLocalPlayerId()
+{
+	return LocalPlayerId;
+}
+
+// get the info for a particular player
+bool GetPlayerPos(int id, Vector3* pos)
+{
+	// make sure the player is valid and active
+	if (id < 0 || id >= MAX_PLAYERS || !beans[id].active)
+		return false;
+
+	*pos = beans[id].position;
 }

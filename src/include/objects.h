@@ -6,3 +6,10 @@ typedef struct Sphere {
     Color color;
     BoundingBox sphereCollide;
 } Sphere;
+
+typedef struct Plane {
+    Vector3 position;
+    Vector2 size;
+    Color Color;
+    BoundingBox planeCollide;
+} Plane;

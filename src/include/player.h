@@ -1,4 +1,8 @@
 #include "raylib/raylib.h"
+#include "net/net_constants.h"
+
+// the player id of this client
+int LocalPlayerId = -1;
 
 // this struct wont be used until networking is added
 typedef struct Bean {
@@ -19,6 +23,8 @@ typedef struct LocalBean {
     Camera camera; // camera
     int cameraMode; // camera mode
 } LocalBean;
+
+Bean beans[MAX_PLAYERS] = { 0 };
 
 // all of my pride and joy
 void UpdateCameraWithBean(LocalBean* bean);
