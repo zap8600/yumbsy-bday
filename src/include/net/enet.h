@@ -40,7 +40,7 @@
 #include <stdint.h>
 #include <time.h>
 
-const struct in6_addr in6addr_any
+const struct in6_addr in6addr_any;
 
 #define ENET_VERSION_MAJOR 2
 #define ENET_VERSION_MINOR 3
