@@ -18,6 +18,14 @@ struct raylib_syms {
     double (*GetTime)(void);
     float (*GetFrameTime)(void);
     bool (*IsKeyDown)(int key);
+    Vector3 (*Vector3Add)(Vector3 v1, Vector3 v2);
+    Vector3 (*Vector3AddValue)(Vector3 v, float add);
+    Vector3 (*Vector3Scale)(Vector3 v, float scalar);
+    Vector3 (*Vector3CrossProduct)(Vector3 v1, Vector3 v2);
+    Vector3 (*Vector3Negate)(Vector3 v);
+    Vector3 (*Vector3Normalize)(Vector3 v);
+    Vector3 (*Vector3RotateByAxisAngle)(Vector3 v, Vector3 axis, float angle);
+    float (*Vector3Angle)(Vector3 v1, Vector3 v2);
     void (*InitWindow)(int width, int height, const char *title);
     void (*CloseWindow)(void);
     bool (*WindowShouldClose)(void);

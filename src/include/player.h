@@ -28,12 +28,12 @@ typedef struct LocalBean {
 //Bean beans[MAX_PLAYERS] = { 0 };
 
 // all of my pride and joy
-void UpdateCameraWithBean(LocalBean* bean);
-Vector3 GetBeanForward(LocalBean* bean);
-Vector3 GetBeanUp(LocalBean* bean);
-Vector3 GetBeanRight(LocalBean* bean);
-void BeanYaw(LocalBean* bean, float angle, bool rotateAroundTarget);
-void BeanPitch(LocalBean* bean, float angle, bool lockView, bool rotateAroundTarget, bool rotateUp);
+void UpdateCameraWithBean(LocalBean* bean, struct raylib_syms *sym);
+Vector3 GetBeanForward(LocalBean* bean, struct raylib_syms *sym);
+Vector3 GetBeanUp(LocalBean* bean, struct raylib_syms *sym);
+Vector3 GetBeanRight(LocalBean* bean, struct raylib_syms *sym);
+void BeanYaw(LocalBean* bean, float angle, bool rotateAroundTarget, struct raylib_syms *sym);
+void BeanPitch(LocalBean* bean, float angle, bool lockView, bool rotateAroundTarget, bool rotateUp, struct raylib_syms *sym);
 void UpdateLocalBean(LocalBean* bean, struct raylib_syms *sym);
 
 // defined in main.c
