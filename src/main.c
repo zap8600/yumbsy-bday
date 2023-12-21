@@ -154,7 +154,7 @@ int main(int argc, char *argv[])
     bean.camera.fovy = 60.0f;                                // Camera field-of-view Y
     bean.camera.projection = CAMERA_PERSPECTIVE;             // Camera projection type
     bean.cameraMode = CAMERA_FIRST_PERSON;
-    UpdateCameraWithBean(&bean);
+    UpdateCameraWithBean(&bean, sym);
 
     // Generates some random columns
     float heights[MAX_COLUMNS] = { 0 };
@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
             if(bean.cameraMode != CAMERA_FIRST_PERSON) {
                 bean.cameraMode = CAMERA_FIRST_PERSON;
                 bean.up = (Vector3){ 0.0f, 1.0f, 0.0f }; // Reset roll
-                UpdateCameraWithBean(&bean);
+                UpdateCameraWithBean(&bean, sym);
                 //updateBeanCollide(&camera, cameraMode);
             }
         }
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
             if(bean.cameraMode != CAMERA_THIRD_PERSON) {
                 bean.cameraMode = CAMERA_THIRD_PERSON;
                 bean.up = (Vector3){ 0.0f, 1.0f, 0.0f }; // Reset roll
-                UpdateCameraWithBean(&bean);
+                UpdateCameraWithBean(&bean, sym);
                 //updateBeanCollide(&camera, cameraMode);
             }
         }
