@@ -320,7 +320,7 @@ int main(int argc, char *argv[])
             sym->EndMode3D();
 
             // Draw info boxes
-            sym->DrawRectangle(5, 5, 330, 85, sym->Fade(RED, 0.5f));
+            sym->DrawRectangle(5, 5, 330, 85, RED);
             sym->DrawRectangleLines(5, 5, 330, 85, BLUE);
 
             sym->DrawText("Player controls:", 15, 15, 10, BLACK);
