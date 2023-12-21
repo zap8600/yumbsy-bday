@@ -20,8 +20,9 @@
 #include "player.h"
 #include "mymath.h"
 
-#define _COSMO_SOURCE
-#include "libc/dlopen/dlfcn.h"
+//#define _COSMO_SOURCE
+//#include "libc/dlopen/dlfcn.h"
+#include <dlfcn.h>
 
 #define ENET_IMPLEMENTATION
 #include "net/net_common.h"
@@ -51,12 +52,12 @@ double LastNow = 0;
 
 static void *try_find_raylib_lib(void) {
     char *candidates[] = {
-        "./libraylib.so",
-        "./raylib.dll"
+        "./libraylib.so"
+        //"./raylib.dll"
     };
     void *lib = NULL;
     for(size_t i = 0; i < (sizeof(candidates) / sizeof(*candidates)); ++i) {
-        if ((lib = cosmo_dlopen(candidates[i], RTLD_NOW | RTLD_DEEPBIND))) return lib;
+        if ((lib = dlopen(candidates[i], RTLD_NOW))) return lib;
     }
 
     for(size_t i = 0; i < (sizeof(candidates) / sizeof(*candidates)); ++i) {
@@ -73,47 +74,47 @@ static struct raylib_syms *try_get_raylib_syms(void) {
     struct raylib_syms *syms = calloc(1, sizeof(*syms));
     *syms = (struct raylib_syms) {
         .lib = raylib,
-        .GetRandomValue = cosmo_dlsym(raylib, "GetRandomValue"),
-        .DrawPlane = cosmo_dlsym(raylib, "DrawPlane"),
-        .DisableCursor = cosmo_dlsym(raylib, "DisableCursor"),
-        .EndMode3D = cosmo_dlsym(raylib, "EndMode3D"),
-        .BeginMode3D = cosmo_dlsym(raylib, "BeginMode3D"),
-        .DrawCapsule = cosmo_dlsym(raylib, "DrawCapsule"),
-        .DrawCapsuleWires = cosmo_dlsym(raylib, "DrawCapsuleWires"),
-        .TextFormat = cosmo_dlsym(raylib, "TextFormat"),
-        .DrawRectangle = cosmo_dlsym(raylib, "DrawRectangle"),
-        .DrawRectangleLines = cosmo_dlsym(raylib, "DrawRectangleLines"),
-        .Fade = cosmo_dlsym(raylib, "Fade"),
-        .GetMouseDelta = cosmo_dlsym(raylib, "GetMouseDelta"),
-        .GetTime = cosmo_dlsym(raylib, "GetTime"),
-        .GetFrameTime = cosmo_dlsym(raylib, "GetFrameTime"),
-        .IsKeyDown = cosmo_dlsym(raylib, "IsKeyDown"),
-        .Vector3Add = cosmo_dlsym(raylib, "Vector3Add"),
-        .Vector3AddValue = cosmo_dlsym(raylib, "Vector3AddValue"),
-        .Vector3Scale = cosmo_dlsym(raylib, "Vector3Scale"),
-        .Vector3CrossProduct = cosmo_dlsym(raylib, "Vector3CrossProduct"),
-        .Vector3Negate = cosmo_dlsym(raylib, "Vector3Negate"),
-        .Vector3Normalize = cosmo_dlsym(raylib, "Vector3Normalize"),
-        .Vector3RotateByAxisAngle = cosmo_dlsym(raylib, "Vector3RotateByAxisAngle"),
-        .Vector3Angle = cosmo_dlsym(raylib, "Vector3Angle"),
-        .Vector3Subtract = cosmo_dlsym(raylib, "Vector3Subtract"),
-        .Vector3SubtractValue = cosmo_dlsym(raylib, "Vector3SubtractValue"),
-        .InitWindow = cosmo_dlsym(raylib, "InitWindow"),
-        .CloseWindow = cosmo_dlsym(raylib, "CloseWindow"),
-        .WindowShouldClose = cosmo_dlsym(raylib, "WindowShouldClose"),
-        .ClearBackground = cosmo_dlsym(raylib, "ClearBackground"),
-        .BeginDrawing = cosmo_dlsym(raylib, "BeginDrawing"),
-        .EndDrawing = cosmo_dlsym(raylib, "EndDrawing"),
-        .SetTargetFPS = cosmo_dlsym(raylib, "SetTargetFPS"),
-        .IsKeyPressed = cosmo_dlsym(raylib, "IsKeyPressed"),
-        .DrawText = cosmo_dlsym(raylib, "DrawText"),
-        .InitAudioDevice = cosmo_dlsym(raylib, "InitAudioDevice"),
-        .CloseAudioDevice = cosmo_dlsym(raylib, "CloseAudioDevice"),
-        .LoadMusicStream = cosmo_dlsym(raylib, "LoadMusicStream"),
-        .UnloadMusicStream = cosmo_dlsym(raylib, "UnloadMusicStream"),
-        .PlayMusicStream = cosmo_dlsym(raylib, "PlayMusicStream"),
-        .StopMusicStream = cosmo_dlsym(raylib, "StopMusicStream"),
-        .UpdateMusicStream = cosmo_dlsym(raylib, "UpdateMusicStream")
+        .GetRandomValue = dlsym(raylib, "GetRandomValue"),
+        .DrawPlane = dlsym(raylib, "DrawPlane"),
+        .DisableCursor = dlsym(raylib, "DisableCursor"),
+        .EndMode3D = dlsym(raylib, "EndMode3D"),
+        .BeginMode3D = dlsym(raylib, "BeginMode3D"),
+        .DrawCapsule = dlsym(raylib, "DrawCapsule"),
+        .DrawCapsuleWires = dlsym(raylib, "DrawCapsuleWires"),
+        .TextFormat = dlsym(raylib, "TextFormat"),
+        .DrawRectangle = dlsym(raylib, "DrawRectangle"),
+        .DrawRectangleLines = dlsym(raylib, "DrawRectangleLines"),
+        .Fade = dlsym(raylib, "Fade"),
+        .GetMouseDelta = dlsym(raylib, "GetMouseDelta"),
+        .GetTime = dlsym(raylib, "GetTime"),
+        .GetFrameTime = dlsym(raylib, "GetFrameTime"),
+        .IsKeyDown = dlsym(raylib, "IsKeyDown"),
+        .Vector3Add = dlsym(raylib, "Vector3Add"),
+        .Vector3AddValue = dlsym(raylib, "Vector3AddValue"),
+        .Vector3Scale = dlsym(raylib, "Vector3Scale"),
+        .Vector3CrossProduct = dlsym(raylib, "Vector3CrossProduct"),
+        .Vector3Negate = dlsym(raylib, "Vector3Negate"),
+        .Vector3Normalize = dlsym(raylib, "Vector3Normalize"),
+        .Vector3RotateByAxisAngle = dlsym(raylib, "Vector3RotateByAxisAngle"),
+        .Vector3Angle = dlsym(raylib, "Vector3Angle"),
+        .Vector3Subtract = dlsym(raylib, "Vector3Subtract"),
+        .Vector3SubtractValue = dlsym(raylib, "Vector3SubtractValue"),
+        .InitWindow = dlsym(raylib, "InitWindow"),
+        .CloseWindow = dlsym(raylib, "CloseWindow"),
+        .WindowShouldClose = dlsym(raylib, "WindowShouldClose"),
+        .ClearBackground = dlsym(raylib, "ClearBackground"),
+        .BeginDrawing = dlsym(raylib, "BeginDrawing"),
+        .EndDrawing = dlsym(raylib, "EndDrawing"),
+        .SetTargetFPS = dlsym(raylib, "SetTargetFPS"),
+        .IsKeyPressed = dlsym(raylib, "IsKeyPressed"),
+        .DrawText = dlsym(raylib, "DrawText"),
+        .InitAudioDevice = dlsym(raylib, "InitAudioDevice"),
+        .CloseAudioDevice = dlsym(raylib, "CloseAudioDevice"),
+        .LoadMusicStream = dlsym(raylib, "LoadMusicStream"),
+        .UnloadMusicStream = dlsym(raylib, "UnloadMusicStream"),
+        .PlayMusicStream = dlsym(raylib, "PlayMusicStream"),
+        .StopMusicStream = dlsym(raylib, "StopMusicStream"),
+        .UpdateMusicStream = dlsym(raylib, "UpdateMusicStream")
     };
 
     for (size_t i = 0; i < (sizeof(struct raylib_syms) / sizeof(void *)); ++i) {
