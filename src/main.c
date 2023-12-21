@@ -67,11 +67,11 @@ static void *try_find_raylib_lib(void) {
     return NULL;
 }
 
-static struct raylib_syms *try_get_raylib_syms(void) {
+static raylib_syms *try_get_raylib_syms(void) {
     void *raylib = try_find_raylib_lib();
     if(!raylib) return NULL;
-    struct raylib_syms *syms = calloc(1, sizeof(*syms));
-    *syms = (struct raylib_syms) {
+    raylib_syms *syms = calloc(1, sizeof(*syms));
+    *syms = (raylib_syms) {
         .lib = raylib,
         .GetRandomValue = cosmo_dlsym(raylib, "GetRandomValue"),
         .DrawPlane = cosmo_dlsym(raylib, "DrawPlane"),
@@ -105,7 +105,7 @@ static struct raylib_syms *try_get_raylib_syms(void) {
         .UpdateMusicStream = cosmo_dlsym(raylib, "UpdateMusicStream")
     };
 
-    for (size_t i = 0; i < (sizeof(struct raylib_syms) / sizeof(void *)); ++i) {
+    for (size_t i = 0; i < (sizeof(raylib_syms) / sizeof(void *)); ++i) {
 		if (!((void **)syms)[i]) {
 			printf("raylib_syms[%zu] is NULL, check for typos\n", i);
 			free(syms);
@@ -127,7 +127,7 @@ bool GetPlayerPos(int id, Vector3* pos);
 //------------------------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
-    struct raylib_syms *sym = try_get_raylib_syms();
+    raylib_syms *sym = try_get_raylib_syms();
     if(!sym) return -1;
     // Initialization
     //--------------------------------------------------------------------------------------

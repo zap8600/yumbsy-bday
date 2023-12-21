@@ -34,7 +34,7 @@ Vector3 GetBeanUp(LocalBean* bean);
 Vector3 GetBeanRight(LocalBean* bean);
 void BeanYaw(LocalBean* bean, float angle, bool rotateAroundTarget);
 void BeanPitch(LocalBean* bean, float angle, bool lockView, bool rotateAroundTarget, bool rotateUp);
-void UpdateLocalBean(LocalBean* bean, struct raylib_syms *sym)
+void UpdateLocalBean(LocalBean* bean, raylib_syms *sym)
 
 // defined in main.c
 void UpdatePlayerList(LocalBean* bean);
