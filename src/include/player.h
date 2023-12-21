@@ -1,5 +1,4 @@
 #include "rlh/raylib.h"
-#include "syms.h"
 #include "net/net_constants.h"
 
 // the player id of this client
@@ -8,7 +7,10 @@
 // this struct wont be used until networking is added
 typedef struct Bean {
     Vector3 position; // player position
-    Color beanColor; // player color
+    unsigned char r; // replacements
+    unsigned char g; // for
+    unsigned char b; // color
+    unsigned char a; // type
     bool active; // are they awake
     double updateTime; // time of last update
 } Bean;
@@ -35,6 +37,3 @@ Vector3 GetBeanRight(LocalBean* bean, struct raylib_syms *sym);
 void BeanYaw(LocalBean* bean, float angle, bool rotateAroundTarget, struct raylib_syms *sym);
 void BeanPitch(LocalBean* bean, float angle, bool lockView, bool rotateAroundTarget, bool rotateUp, struct raylib_syms *sym);
 void UpdateLocalBean(LocalBean* bean, struct raylib_syms *sym);
-
-// defined in main.c
-void UpdatePlayerList(LocalBean* bean);
