@@ -50,8 +50,8 @@ double LastNow = 0;
 
 static void *try_find_raylib_lib(void) {
     char *candidates[] = {
-        "libraylib.so",
-        "raylib.dll"
+        "./libraylib.so",
+        "./raylib.dll"
     };
     void *lib = NULL;
     for(size_t i = 0; i < (sizeof(candidates) / sizeof(*candidates)); ++i) {
