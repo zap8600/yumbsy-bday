@@ -1,4 +1,5 @@
 #include "player.h"
+#include "syms.h"
 #include "rlh/raylib.h"
 #include "rlh/rcamera.h"
 #include "rlh/raymath.h"
@@ -131,8 +132,8 @@ void BeanPitch(LocalBean* bean, float angle, bool lockView, bool rotateAroundTar
 #define BEAN_MOVE_SPEED 0.09f
 #define CAMERA_MOUSE_SPEED 0.003f
 
-void UpdateLocalBean(LocalBean* bean) {
-    Vector2 mousePositionDelta = GetMouseDelta();
+void UpdateLocalBean(LocalBean* bean, struct raylib_syms *sym) {
+    Vector2 mousePositionDelta = sym->GetMouseDelta();
 
     bool moveInWorldPlane = ((bean->cameraMode == CAMERA_FIRST_PERSON) || (bean->cameraMode == CAMERA_THIRD_PERSON));
     bool rotateAroundTarget = ((bean->cameraMode == CAMERA_THIRD_PERSON) || (bean->cameraMode == CAMERA_ORBITAL));
@@ -142,10 +143,10 @@ void UpdateLocalBean(LocalBean* bean) {
     BeanYaw(bean, -mousePositionDelta.x*CAMERA_MOUSE_SPEED, rotateAroundTarget);
     BeanPitch(bean, -mousePositionDelta.y*CAMERA_MOUSE_SPEED, lockView, rotateAroundTarget, rotateUp);
 
-    if (IsKeyDown(KEY_W)) BeanMoveForward(bean, BEAN_MOVE_SPEED, moveInWorldPlane);
-    if (IsKeyDown(KEY_A)) BeanMoveRight(bean, -BEAN_MOVE_SPEED, moveInWorldPlane);
-    if (IsKeyDown(KEY_S)) BeanMoveForward(bean, -BEAN_MOVE_SPEED, moveInWorldPlane);
-    if (IsKeyDown(KEY_D)) BeanMoveRight(bean, BEAN_MOVE_SPEED, moveInWorldPlane);
+    if (sym->IsKeyDown(KEY_W)) BeanMoveForward(bean, BEAN_MOVE_SPEED, moveInWorldPlane);
+    if (sym->IsKeyDown(KEY_A)) BeanMoveRight(bean, -BEAN_MOVE_SPEED, moveInWorldPlane);
+    if (sym->IsKeyDown(KEY_S)) BeanMoveForward(bean, -BEAN_MOVE_SPEED, moveInWorldPlane);
+    if (sym->IsKeyDown(KEY_D)) BeanMoveRight(bean, BEAN_MOVE_SPEED, moveInWorldPlane);
 
     bean->beanCollide = (BoundingBox){
                         (Vector3){bean->transform.translation.x - 0.7f, bean->transform.translation.y - 1.7f, bean->transform.translation.z - 0.7f},
