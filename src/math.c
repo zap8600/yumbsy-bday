@@ -1,4 +1,5 @@
 #include "mymath.h"
+#include <math.h>
 
 Vector3 BeanVector3Add(Vector3 v1, Vector3 v2)
 {
