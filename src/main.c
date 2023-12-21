@@ -52,7 +52,7 @@ double LastNow = 0;
 
 static void *try_find_raylib_lib(void) {
     char *candidates[] = {
-        "./libraylib.so"
+        "./libraylib.so.500"
         //"./raylib.dll"
     };
     void *lib = NULL;
