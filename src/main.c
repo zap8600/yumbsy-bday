@@ -19,6 +19,9 @@
 #include "objects.h"
 #include "player.h"
 
+#define _COSMO_SOURCE
+#include "libc/dlopen/dlfcn.h"
+
 #define ENET_IMPLEMENTATION
 #include "net/net_common.h"
 
@@ -57,6 +60,7 @@ struct raylib_syms {
     const char *(*TextFormat)(const char *text, ...);
     void (*DrawRectangle)(int posX, int posY, int width, int height, Color color);
     void (*DrawRectangleLines)(int posX, int posY, int width, int height, Color color);
+    Color (*Fade)(Color color, float alpha);
     void (*InitWindow)(int width, int height, const char *title);
     void (*CloseWindow)(void);
     bool (*WindowShouldClose)(void);
@@ -109,6 +113,7 @@ static struct raylib_syms *try_get_raylib_syms(void) {
         .TextFormat = cosmo_dlsym(raylib, "TextFormat"),
         .DrawRectangle = cosmo_dlsym(raylib, "DrawRectangle"),
         .DrawRectangleLines = cosmo_dlsym(raylib, "DrawRectangleLines"),
+        .Fade = cosmo_dlsym(raylib, "Fade"),
         .InitWindow = cosmo_dlsym(raylib, "InitWindow"),
         .CloseWindow = cosmo_dlsym(raylib, "CloseWindow"),
         .WindowShouldClose = cosmo_dlsym(raylib, "WindowShouldClose"),
@@ -332,7 +337,7 @@ int main(int argc, char *argv[])
             sym->EndMode3D();
 
             // Draw info boxes
-            sym->DrawRectangle(5, 5, 330, 85, Fade(RED, 0.5f));
+            sym->DrawRectangle(5, 5, 330, 85, sym->Fade(RED, 0.5f));
             sym->DrawRectangleLines(5, 5, 330, 85, BLUE);
 
             sym->DrawText("Player controls:", 15, 15, 10, BLACK);
