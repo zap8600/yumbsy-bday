@@ -45,6 +45,98 @@ double InputUpdateInterval = 1.0f / 20.0f;
 
 double LastNow = 0;
 
+struct raylib_syms {
+    void *lib;
+    int (*GetRandomValue)(int min, int max);
+    void (*DrawPlane)(Vector3 centerPos, Vector2 size, Color color);
+    void (*DisableCursor)(void);
+    void (*EndMode3D)(void);
+    void (*BeginMode3D)(Camera3D camera);
+    void (*DrawCapsule)(Vector3 startPos, Vector3 endPos, float radius, int slices, int rings, Color color);
+    void (*DrawCapsuleWires)(Vector3 startPos, Vector3 endPos, float radius, int slices, int rings, Color color);
+    const char *(*TextFormat)(const char *text, ...);
+    void (*DrawRectangle)(int posX, int posY, int width, int height, Color color);
+    void (*DrawRectangleLines)(int posX, int posY, int width, int height, Color color);
+    void (*InitWindow)(int width, int height, const char *title);
+    void (*CloseWindow)(void);
+    bool (*WindowShouldClose)(void);
+    void (*ClearBackground)(Color color);                          // Set background color (framebuffer clear color)
+    void (*BeginDrawing)(void);                                    // Setup canvas (framebuffer) to start drawing
+    void (*EndDrawing)(void);
+    void (*SetTargetFPS)(int fps);
+    bool (*IsKeyPressed)(int key);
+    void (*DrawText)(const char *text, int posX, int posY, int fontSize, Color color);
+    void (*InitAudioDevice)(void);
+    void (*CloseAudioDevice)(void);
+    Music (*LoadMusicStream)(const char *fileName);
+    void (*UnloadMusicStream)(Music music);
+    void (*PlayMusicStream)(Music music);
+    void (*StopMusicStream)(Music music);
+    void (*UpdateMusicStream)(Music music);
+};
+
+static void *try_find_raylib_lib(void) {
+    char *candidates[] = {
+        "libraylib.so",
+        "raylib.dll"
+    };
+    void *lib = NULL;
+    for(size_t i = 0; i < (sizeof(candidates) / sizeof(*candidates)); ++i) {
+        if ((lib = cosmo_dlopen(candidates[i], RTLD_LAZY))) return lib;
+    }
+
+    for(size_t i = 0; i < (sizeof(candidates) / sizeof(*candidates)); ++i) {
+        printf("\"%s\" ", candidates[i]);
+    }
+    printf("\n");
+
+    return NULL;
+}
+
+static struct raylib_syms *try_get_raylib_syms(void) {
+    void *raylib = try_find_raylib_lib();
+    if(!raylib) return NULL;
+    struct raylib_syms *syms = calloc(1, sizeof(*syms));
+    *syms = (struct raylib_syms) {
+        .lib = raylib,
+        .GetRandomValue = cosmo_dlsym(raylib, "GetRandomValue"),
+        .DrawPlane = cosmo_dlsym(raylib, "DrawPlane"),
+        .DisableCursor = cosmo_dlsym(raylib, "DisableCursor"),
+        .EndMode3D = cosmo_dlsym(raylib, "EndMode3D"),
+        .BeginMode3D = cosmo_dlsym(raylib, "BeginMode3D"),
+        .DrawCapsule = cosmo_dlsym(raylib, "DrawCapsule"),
+        .DrawCapsuleWires = cosmo_dlsym(raylib, "DrawCapsuleWires"),
+        .TextFormat = cosmo_dlsym(raylib, "TextFormat"),
+        .DrawRectangle = cosmo_dlsym(raylib, "DrawRectangle"),
+        .DrawRectangleLines = cosmo_dlsym(raylib, "DrawRectangleLines"),
+        .InitWindow = cosmo_dlsym(raylib, "InitWindow"),
+        .CloseWindow = cosmo_dlsym(raylib, "CloseWindow"),
+        .WindowShouldClose = cosmo_dlsym(raylib, "WindowShouldClose"),
+        .ClearBackground = cosmo_dlsym(raylib, "ClearBackground"),
+        .BeginDrawing = cosmo_dlsym(raylib, "BeginDrawing"),
+        .EndDrawing = cosmo_dlsym(raylib, "EndDrawing"),
+        .SetTargetFPS = cosmo_dlsym(raylib, "SetTargetFPS"),
+        .IsKeyPressed = cosmo_dlsym(raylib, "IsKeyPressed"),
+        .DrawText = cosmo_dlsym(raylib, "DrawText"),
+        .InitAudioDevice = cosmo_dlsym(raylib, "InitAudioDevice"),
+        .CloseAudioDevice = cosmo_dlsym(raylib, "CloseAudioDevice"),
+        .LoadMusicStream = cosmo_dlsym(raylib, "LoadMusicStream"),
+        .UnloadMusicStream = cosmo_dlsym(raylib, "UnloadMusicStream"),
+        .PlayMusicStream = cosmo_dlsym(raylib, "PlayMusicStream"),
+        .StopMusicStream = cosmo_dlsym(raylib, "StopMusicStream"),
+        .UpdateMusicStream = cosmo_dlsym(raylib, "UpdateMusicStream")
+    };
+
+    for (size_t i = 0; i < (sizeof(struct raylib_syms) / sizeof(void *)); ++i) {
+		if (!((void **)syms)[i]) {
+			printf("raylib_syms[%zu] is NULL, check for typos\n", i);
+			free(syms);
+			return NULL;
+		}
+	}
+	return syms;
+}
+
 void Connect(const char* serverAddress);
 void Update(double now, float deltaT, LocalBean* bean);
 void Disconnect();
@@ -57,12 +149,14 @@ bool GetPlayerPos(int id, Vector3* pos);
 //------------------------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
+    struct raylib_syms *sym = try_get_raylib_syms();
+    if(!sym) return -1;
     // Initialization
     //--------------------------------------------------------------------------------------
     const int screenWidth = 800;
     const int screenHeight = 450;
 
-    InitWindow(screenWidth, screenHeight, "bean game proto - happy xmas yumbsy");
+    sym->InitWindow(screenWidth, screenHeight, "bean game proto - happy xmas yumbsy");
 
     LocalBean bean = { 0 };
 
@@ -83,12 +177,12 @@ int main(int argc, char *argv[])
 
     for (int i = 0; i < MAX_COLUMNS; i++)
     {
-        heights[i] = (float)GetRandomValue(1, 12);
-        positions[i] = (Vector3){ (float)GetRandomValue(-15, 15), heights[i]/2.0f, (float)GetRandomValue(-15, 15) };
-        colors[i] = (Color){ GetRandomValue(20, 255), GetRandomValue(10, 55), 30, 255 };
+        heights[i] = (float)(sym->GetRandomValue(1, 12));
+        positions[i] = (Vector3){ (float)(sym->GetRandomValue(-15, 15)), heights[i]/2.0f, (float)(sym->GetRandomValue(-15, 15)) };
+        colors[i] = (Color){ (sym->GetRandomValue(20, 255)), (sym->GetRandomValue(10, 55)), 30, 255 };
     }
 
-    bean.beanColor = (Color){ GetRandomValue(0, 255), GetRandomValue(0, 255), GetRandomValue(0, 255), GetRandomValue(0, 255) };
+    bean.beanColor = (Color){ (sym->GetRandomValue(0, 255)), (sym->GetRandomValue(0, 255)), (sym->GetRandomValue(0, 255)), (sym->GetRandomValue(0, 255)) };
 
     // sphere time
     Sphere thatSphere = { 0 };
@@ -100,16 +194,16 @@ int main(int argc, char *argv[])
         Vector3AddValue(thatSphere.position, thatSphere.radius)
     };
 
-    DisableCursor();                    // Limit cursor to relative movement inside the window
+    sym->DisableCursor();                    // Limit cursor to relative movement inside the window
 
-    SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
+    sym->SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
 
     bool connected = false;
     bool client = false;
     //--------------------------------------------------------------------------------------
 
     // Main game loop
-    while (!WindowShouldClose())        // Detect window close button or ESC key
+    while (!(sym->WindowShouldClose()))        // Detect window close button or ESC key
     {
         /*
         // Update
@@ -122,7 +216,7 @@ int main(int argc, char *argv[])
         }
         */
 
-        if (IsKeyPressed(KEY_ONE))
+        if ((sym->IsKeyPressed(KEY_ONE)))
         {
             if(bean.cameraMode != CAMERA_FIRST_PERSON) {
                 bean.cameraMode = CAMERA_FIRST_PERSON;
@@ -132,7 +226,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (IsKeyPressed(KEY_TWO))
+        if ((sym->IsKeyPressed(KEY_TWO)))
         {
             if(bean.cameraMode != CAMERA_THIRD_PERSON) {
                 bean.cameraMode = CAMERA_THIRD_PERSON;
@@ -142,7 +236,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (IsKeyPressed(KEY_THREE))
+        if ((sym->IsKeyPressed(KEY_THREE)))
         {
             // setup client
             if(!client) {
@@ -167,29 +261,29 @@ int main(int argc, char *argv[])
 
         // Draw
         //----------------------------------------------------------------------------------
-        BeginDrawing();
+        sym->BeginDrawing();
 
-            ClearBackground(RAYWHITE);
+            sym->ClearBackground(RAYWHITE);
 
-            BeginMode3D(bean.camera);
+            sym->BeginMode3D(bean.camera);
 
-                DrawPlane((Vector3){ 0.0f, 0.0f, 0.0f }, (Vector2){ 32.0f, 32.0f }, LIGHTGRAY); // Draw ground
+                sym->DrawPlane((Vector3){ 0.0f, 0.0f, 0.0f }, (Vector2){ 32.0f, 32.0f }, LIGHTGRAY); // Draw ground
 
                 if (!Connected()) {
-                    DrawText("Connecting", 15, 75, 10, BLACK);
+                    //sym->DrawText("Connecting", 15, 75, 10, BLACK);
                 } else {
-                    DrawText(TextFormat("Player %d", GetLocalPlayerId()), 15, 75, 10, BLACK);
+                    //sym->DrawText(TextFormat("Player %d", GetLocalPlayerId()), 15, 75, 10, BLACK);
 
                     for (int i = 0; i < MAX_PLAYERS; i++) {
                         if(i != LocalPlayerId) {
                             Vector3 pos = { 0 };
                             if(GetPlayerPos(i, &pos)) {
-                                DrawCapsule(
+                                sym->DrawCapsule(
                                     (Vector3){pos.x, pos.y + 0.2f, pos.z},
                                     (Vector3){pos.x, pos.y - 1.0f, pos.z},
                                     0.7f, 8, 8, beans[i].beanColor
                                 );
-                                DrawCapsuleWires(
+                                sym->DrawCapsuleWires(
                                     (Vector3){pos.x, pos.y + 0.2f, pos.z},
                                     (Vector3){pos.x, pos.y - 1.0f, pos.z},
                                     0.7f, 8, 8, BLACK // an L color tbh
@@ -211,8 +305,8 @@ int main(int argc, char *argv[])
                DrawCapsuleWires((Vector3){-3.0f, 2.2f, -3.0f}, (Vector3){-3.0f, 1.0f, -3.0f}, 0.7f, 8, 8, GREEN);
                */
 
-                DrawSphere(thatSphere.position, thatSphere.radius, thatSphere.color);
-                DrawBoundingBox(thatSphere.sphereCollide, VIOLET);
+                //DrawSphere(thatSphere.position, thatSphere.radius, thatSphere.color);
+                //DrawBoundingBox(thatSphere.sphereCollide, VIOLET);
 
                 /*
                 // Draw some cubes around
@@ -224,44 +318,37 @@ int main(int argc, char *argv[])
                 */
 
                 // Draw point at target
-                DrawCube(bean.target, 0.5f, 0.5f, 0.5f, YELLOW);
-                DrawCubeWires(bean.target, 0.5f, 0.5f, 0.5f, DARKPURPLE);
+                //DrawCube(bean.target, 0.5f, 0.5f, 0.5f, YELLOW);
+                //DrawCubeWires(bean.target, 0.5f, 0.5f, 0.5f, DARKPURPLE);
 
                 // Draw bean
                 if (bean.cameraMode == CAMERA_THIRD_PERSON)
                 {
-                    DrawCapsule(bean.topCap, bean.botCap, 0.7f, 8, 8, bean.beanColor);
-                    DrawCapsuleWires(bean.topCap, bean.botCap, 0.7f, 8, 8, BLACK);
+                    sym->DrawCapsule(bean.topCap, bean.botCap, 0.7f, 8, 8, bean.beanColor);
+                    sym->DrawCapsuleWires(bean.topCap, bean.botCap, 0.7f, 8, 8, BLACK);
                     //DrawBoundingBox(beanCollide, VIOLET);
                 }
 
-            EndMode3D();
+            sym->EndMode3D();
 
             // Draw info boxes
-            DrawRectangle(5, 5, 330, 85, Fade(RED, 0.5f));
-            DrawRectangleLines(5, 5, 330, 85, BLUE);
+            sym->DrawRectangle(5, 5, 330, 85, Fade(RED, 0.5f));
+            sym->DrawRectangleLines(5, 5, 330, 85, BLUE);
 
-            DrawText("Player controls:", 15, 15, 10, BLACK);
-            DrawText("- Move keys: W, A, S, D, Space, Left-Ctrl", 15, 30, 10, BLACK);
-            DrawText("- Look around: arrow keys or mouse", 15, 45, 10, BLACK);
-            DrawText("- Camera mode keys: 1, 2", 15, 60, 10, BLACK);
+            sym->DrawText("Player controls:", 15, 15, 10, BLACK);
+            sym->DrawText("- Move keys: W, A, S, D, Space, Left-Ctrl", 15, 30, 10, BLACK);
+            sym->DrawText("- Look around: arrow keys or mouse", 15, 45, 10, BLACK);
+            sym->DrawText("- Camera mode keys: 1, 2", 15, 60, 10, BLACK);
+            sym->DrawText("- Connect to network: 3", 15, 75, 10, BLACK);
 
-            DrawRectangle(600, 5, 195, 70, Fade(SKYBLUE, 0.5f));
-            DrawRectangleLines(600, 5, 195, 70, BLUE);
-
-            DrawText("Camera status:", 610, 15, 10, BLACK);
-            DrawText(TextFormat("- Position: (%06.3f, %06.3f, %06.3f)", bean.camera.position.x, bean.camera.position.y, bean.camera.position.z), 610, 30, 10, BLACK);
-            DrawText(TextFormat("- Target: (%06.3f, %06.3f, %06.3f)", bean.camera.target.x, bean.camera.target.y, bean.camera.target.z), 610, 45, 10, BLACK);
-            DrawText(TextFormat("- Up: (%06.3f, %06.3f, %06.3f)", bean.camera.up.x, bean.camera.up.y, bean.camera.up.z), 610, 60, 10, BLACK);
-
-        EndDrawing();
+        sym->EndDrawing();
         //----------------------------------------------------------------------------------
     }
 
     // De-Initialization
     //--------------------------------------------------------------------------------------
     Disconnect();
-    CloseWindow();        // Close window and OpenGL context
+    sym->CloseWindow();        // Close window and OpenGL context
     //--------------------------------------------------------------------------------------
 
     return 0;
