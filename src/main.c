@@ -229,7 +229,7 @@ int main(int argc, char *argv[])
             // setup client
             if(!client) {
                 client = true;
-                Connect(argv[1]);
+                Connect("127.0.0.1");
             }
         }
 
@@ -240,7 +240,7 @@ int main(int argc, char *argv[])
             UpdateLocalBean(&bean, sym);
         } else if (connected) {
             // they hate us sadge
-            Connect(argv[1]);
+            Connect("127.0.0.1");
             connected = false;
         }
         Update(sym->GetTime(), sym->GetFrameTime(), &bean);
