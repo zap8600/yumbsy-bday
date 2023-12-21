@@ -9,7 +9,7 @@ void UpdateCameraWithBean(LocalBean* bean, struct raylib_syms *sym) {
         bean->camera.target = bean->target;
         bean->camera.up = bean->up;
     } else { // assume third person for time
-        Vector3 newCameraPosition = sym->Vector3Negate(Vector3Subtract(bean->target, bean->transform.translation));
+        Vector3 newCameraPosition = sym->Vector3Negate(sym->Vector3Subtract(bean->target, bean->transform.translation));
         bean->camera.position = sym->Vector3Add(bean->transform.translation, newCameraPosition);
         bean->camera.target = bean->transform.translation;
         bean->camera.up = bean->up;
