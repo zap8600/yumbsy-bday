@@ -1,5 +1,4 @@
 #include "player.h"
-#include "syms.h"
 #include "rlh/raylib.h"
 #include "rlh/rcamera.h"
 #include "rlh/raymath.h"
