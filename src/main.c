@@ -96,6 +96,7 @@ static struct raylib_syms *try_get_raylib_syms(void) {
         .Vector3RotateByAxisAngle = cosmo_dlsym(raylib, "Vector3RotateByAxisAngle"),
         .Vector3Angle = cosmo_dlsym(raylib, "Vector3Angle"),
         .Vector3Subtract = cosmo_dlsym(raylib, "Vector3Subtract"),
+        .Vector3SubtractValue = cosmo_dlsym(raylib, "Vector3SubtractValue"),
         .InitWindow = cosmo_dlsym(raylib, "InitWindow"),
         .CloseWindow = cosmo_dlsym(raylib, "CloseWindow"),
         .WindowShouldClose = cosmo_dlsym(raylib, "WindowShouldClose"),
@@ -177,8 +178,8 @@ int main(int argc, char *argv[])
     thatSphere.radius = 1.0f;
     thatSphere.color = GREEN;
     thatSphere.sphereCollide = (BoundingBox){
-        Vector3SubtractValue(thatSphere.position, thatSphere.radius),
-        Vector3AddValue(thatSphere.position, thatSphere.radius)
+        sym->Vector3SubtractValue(thatSphere.position, thatSphere.radius),
+        sym->Vector3AddValue(thatSphere.position, thatSphere.radius)
     };
 
     sym->DisableCursor();                    // Limit cursor to relative movement inside the window

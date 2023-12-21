@@ -27,6 +27,7 @@ struct raylib_syms {
     Vector3 (*Vector3RotateByAxisAngle)(Vector3 v, Vector3 axis, float angle);
     float (*Vector3Angle)(Vector3 v1, Vector3 v2);
     Vector3 (*Vector3Subtract)(Vector3 v1, Vector3 v2);
+    Vector3 (*Vector3SubtractValue)(Vector3 v, float sub);
     void (*InitWindow)(int width, int height, const char *title);
     void (*CloseWindow)(void);
     bool (*WindowShouldClose)(void);
