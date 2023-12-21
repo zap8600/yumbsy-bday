@@ -2,6 +2,7 @@
 #include "rlh/raylib.h"
 #include "rlh/rcamera.h"
 #include "rlh/raymath.h"
+#include "mymath.h"
 #include <stdio.h>
 
 void UpdateCameraWithBean(LocalBean* bean, struct raylib_syms *sym) {
@@ -10,20 +11,20 @@ void UpdateCameraWithBean(LocalBean* bean, struct raylib_syms *sym) {
         bean->camera.target = bean->target;
         bean->camera.up = bean->up;
     } else { // assume third person for time
-        Vector3 newCameraPosition = sym->Vector3Negate(sym->Vector3Subtract(bean->target, bean->transform.translation));
-        bean->camera.position = sym->Vector3Add(bean->transform.translation, newCameraPosition);
+        Vector3 newCameraPosition = BeanVector3Negate(BeanVector3Subtract(bean->target, bean->transform.translation));
+        bean->camera.position = BeanVector3Add(bean->transform.translation, newCameraPosition);
         bean->camera.target = bean->transform.translation;
         bean->camera.up = bean->up;
     }
 }
 
 Vector3 GetBeanForward(LocalBean* bean, struct raylib_syms *sym) {
-    return sym->Vector3Normalize(sym->Vector3Subtract(bean->target, bean->transform.translation));
+    return BeanVector3Normalize(BeanVector3Subtract(bean->target, bean->transform.translation));
 }
 
 Vector3 GetBeanUp(LocalBean* bean, struct raylib_syms *sym)
 {
-    return sym->Vector3Normalize(bean->up);
+    return BeanVector3Normalize(bean->up);
 }
 
 Vector3 GetBeanRight(LocalBean* bean, struct raylib_syms *sym)
@@ -31,7 +32,7 @@ Vector3 GetBeanRight(LocalBean* bean, struct raylib_syms *sym)
     Vector3 forward = GetBeanForward(bean, sym);
     Vector3 up = GetBeanUp(bean, sym);
 
-    return sym->Vector3CrossProduct(forward, up);
+    return BeanVector3CrossProduct(forward, up);
 }
 
 void BeanMoveForward(LocalBean* bean, float distance, bool moveInWorldPlane, struct raylib_syms *sym) {
@@ -41,14 +42,14 @@ void BeanMoveForward(LocalBean* bean, float distance, bool moveInWorldPlane, str
     {
         // Project vector onto world plane
         forward.y = 0;
-        forward = sym->Vector3Normalize(forward);
+        forward = BeanVector3Normalize(forward);
     }
 
     // Scale by distance
-    forward = sym->Vector3Scale(forward, distance);
+    forward = BeanVector3Scale(forward, distance);
 
-    bean->transform.translation = sym->Vector3Add(bean->transform.translation, forward);
-    bean->target = sym->Vector3Add(bean->target, forward);
+    bean->transform.translation = BeanVector3Add(bean->transform.translation, forward);
+    bean->target = BeanVector3Add(bean->target, forward);
     UpdateCameraWithBean(bean, sym);
 }
 
@@ -60,15 +61,15 @@ void BeanMoveRight(LocalBean* bean, float distance, bool moveInWorldPlane, struc
     {
         // Project vector onto world plane
         right.y = 0;
-        right = sym->Vector3Normalize(right);
+        right = BeanVector3Normalize(right);
     }
 
     // Scale by distance
-    right = sym->Vector3Scale(right, distance);
+    right = BeanVector3Scale(right, distance);
 
     // Move position and target
-    bean->transform.translation = sym->Vector3Add(bean->transform.translation, right);
-    bean->target = sym->Vector3Add(bean->target, right);
+    bean->transform.translation = BeanVector3Add(bean->transform.translation, right);
+    bean->target = BeanVector3Add(bean->target, right);
     UpdateCameraWithBean(bean, sym);
 }
 
@@ -78,12 +79,12 @@ void BeanYaw(LocalBean* bean, float angle, bool rotateAroundTarget, struct rayli
     Vector3 up = GetBeanUp(bean, sym);
 
     // View vector
-    Vector3 targetPosition = sym->Vector3Subtract(bean->target, bean->transform.translation);
+    Vector3 targetPosition = BeanVector3Subtract(bean->target, bean->transform.translation);
 
     // Rotate view vector around up axis
-    targetPosition = sym->Vector3RotateByAxisAngle(targetPosition, up, angle);
+    targetPosition = BeanVector3RotateByAxisAngle(targetPosition, up, angle);
 
-    bean->target = sym->Vector3Add(bean->transform.translation, targetPosition);
+    bean->target = BeanVector3Add(bean->transform.translation, targetPosition);
     
     UpdateCameraWithBean(bean, sym);
 }
@@ -94,7 +95,7 @@ void BeanPitch(LocalBean* bean, float angle, bool lockView, bool rotateAroundTar
     Vector3 up = GetBeanUp(bean, sym);
 
     // View vector
-    Vector3 targetPosition = sym->Vector3Subtract(bean->target, bean->transform.translation);
+    Vector3 targetPosition = BeanVector3Subtract(bean->target, bean->transform.translation);
 
     if (lockView)
     {
@@ -102,12 +103,12 @@ void BeanPitch(LocalBean* bean, float angle, bool lockView, bool rotateAroundTar
         // to allow only viewing straight up or down.
 
         // Clamp view up
-        float maxAngleUp = sym->Vector3Angle(up, targetPosition);
+        float maxAngleUp = BeanVector3Angle(up, targetPosition);
         maxAngleUp -= 0.001f; // avoid numerical errors
         if (angle > maxAngleUp) angle = maxAngleUp;
 
         // Clamp view down
-        float maxAngleDown = sym->Vector3Angle(sym->Vector3Negate(up), targetPosition);
+        float maxAngleDown = BeanVector3Angle(BeanVector3Negate(up), targetPosition);
         maxAngleDown *= -1.0f; // downwards angle is negative
         maxAngleDown += 0.001f; // avoid numerical errors
         if (angle < maxAngleDown) angle = maxAngleDown;
@@ -117,14 +118,14 @@ void BeanPitch(LocalBean* bean, float angle, bool lockView, bool rotateAroundTar
     Vector3 right = GetBeanRight(bean, sym);
 
     // Rotate view vector around right axis
-    targetPosition = sym->Vector3RotateByAxisAngle(targetPosition, right, angle);
+    targetPosition = BeanVector3RotateByAxisAngle(targetPosition, right, angle);
     
-    bean->target = sym->Vector3Add(bean->transform.translation, targetPosition);
+    bean->target = BeanVector3Add(bean->transform.translation, targetPosition);
 
     if (rotateUp)
     {
         // Rotate up direction around right axis
-        bean->up = sym->Vector3RotateByAxisAngle(bean->up, right, angle);
+        bean->up = BeanVector3RotateByAxisAngle(bean->up, right, angle);
     }
     UpdateCameraWithBean(bean, sym);
 }
