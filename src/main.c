@@ -95,6 +95,7 @@ static struct raylib_syms *try_get_raylib_syms(void) {
         .Vector3Normalize = cosmo_dlsym(raylib, "Vector3Normalize"),
         .Vector3RotateByAxisAngle = cosmo_dlsym(raylib, "Vector3RotateByAxisAngle"),
         .Vector3Angle = cosmo_dlsym(raylib, "Vector3Angle"),
+        .Vector3Subtract = cosmo_dlsym(raylib, "Vector3Subtract"),
         .InitWindow = cosmo_dlsym(raylib, "InitWindow"),
         .CloseWindow = cosmo_dlsym(raylib, "CloseWindow"),
         .WindowShouldClose = cosmo_dlsym(raylib, "WindowShouldClose"),
