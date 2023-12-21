@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
     const int screenWidth = 800;
     const int screenHeight = 450;
 
-    InitWindow(screenWidth, screenHeight, "bean game proto - happy bday yumbsy");
+    InitWindow(screenWidth, screenHeight, "bean game proto - happy xmas yumbsy");
 
     LocalBean bean = { 0 };
 
