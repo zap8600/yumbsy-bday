@@ -18,7 +18,6 @@
 #include "rlh/raymath.h"
 #include "objects.h"
 #include "player.h"
-#include "syms.h"
 
 #define _COSMO_SOURCE
 #include "libc/dlopen/dlfcn.h"
