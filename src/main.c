@@ -56,7 +56,7 @@ static void *try_find_raylib_lib(void) {
     };
     void *lib = NULL;
     for(size_t i = 0; i < (sizeof(candidates) / sizeof(*candidates)); ++i) {
-        if ((lib = cosmo_dlopen(candidates[i], RTLD_LAZY))) return lib;
+        if ((lib = cosmo_dlopen(candidates[i], RTLD_NOW))) return lib;
     }
 
     for(size_t i = 0; i < (sizeof(candidates) / sizeof(*candidates)); ++i) {
