@@ -173,6 +173,7 @@ int main(int argc, char *argv[])
     bean.beanColor = (Color){ (sym->GetRandomValue(0, 255)), (sym->GetRandomValue(0, 255)), (sym->GetRandomValue(0, 255)), (sym->GetRandomValue(0, 255)) };
 
     // sphere time
+    /*
     Sphere thatSphere = { 0 };
     thatSphere.position = (Vector3){-1.0f, 1.0f, -2.0f};
     thatSphere.radius = 1.0f;
@@ -181,6 +182,7 @@ int main(int argc, char *argv[])
         sym->Vector3SubtractValue(thatSphere.position, thatSphere.radius),
         sym->Vector3AddValue(thatSphere.position, thatSphere.radius)
     };
+    */
 
     sym->DisableCursor();                    // Limit cursor to relative movement inside the window
 
@@ -261,6 +263,7 @@ int main(int argc, char *argv[])
                     //sym->DrawText("Connecting", 15, 75, 10, BLACK);
                 } else {
                     //sym->DrawText(TextFormat("Player %d", GetLocalPlayerId()), 15, 75, 10, BLACK);
+                    printf("Bean %d position: x=%f, y=%f, z=%f\n", LocalPlayerId, bean.transform.translation.x, bean.transform.translation.y, bean.transform.translation.z);
 
                     for (int i = 0; i < MAX_PLAYERS; i++) {
                         if(i != LocalPlayerId) {

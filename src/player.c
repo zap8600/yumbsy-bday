@@ -2,6 +2,7 @@
 #include "rlh/raylib.h"
 #include "rlh/rcamera.h"
 #include "rlh/raymath.h"
+#include <stdio.h>
 
 void UpdateCameraWithBean(LocalBean* bean, struct raylib_syms *sym) {
     if(bean->cameraMode == CAMERA_FIRST_PERSON) {
