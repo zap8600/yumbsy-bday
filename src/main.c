@@ -86,6 +86,7 @@ static struct raylib_syms *try_get_raylib_syms(void) {
         .GetMouseDelta = cosmo_dlsym(raylib, "GetMouseDelta"),
         .GetTime = cosmo_dlsym(raylib, "GetTime"),
         .GetFrameTime = cosmo_dlsym(raylib, "GetFrameTime"),
+        .IsKeyDown = cosmo_dlsym(raylib, "IsKeyDown"),
         .InitWindow = cosmo_dlsym(raylib, "InitWindow"),
         .CloseWindow = cosmo_dlsym(raylib, "CloseWindow"),
         .WindowShouldClose = cosmo_dlsym(raylib, "WindowShouldClose"),

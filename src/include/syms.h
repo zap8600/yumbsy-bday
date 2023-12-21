@@ -17,6 +17,7 @@ struct raylib_syms {
     Vector2 (*GetMouseDelta)(void);
     double (*GetTime)(void);
     float (*GetFrameTime)(void);
+    bool (*IsKeyDown)(int key);
     void (*InitWindow)(int width, int height, const char *title);
     void (*CloseWindow)(void);
     bool (*WindowShouldClose)(void);
