@@ -11,6 +11,8 @@
 *
 ********************************************************************************************/
 
+#include <stdio.h>
+
 #include "rlh/raylib.h"
 #include "rlh/rcamera.h"
 #include "rlh/raymath.h"
@@ -53,7 +55,7 @@ bool GetPlayerPos(int id, Vector3* pos);
 //------------------------------------------------------------------------------------
 // Program main entry point
 //------------------------------------------------------------------------------------
-int main(void)
+int main(int argc, char *argv[])
 {
     // Initialization
     //--------------------------------------------------------------------------------------
@@ -145,7 +147,7 @@ int main(void)
             // setup client
             if(!client) {
                 client = true;
-                Connect("127.0.0.1");
+                Connect(argv[1]);
             }
         }
 
@@ -156,7 +158,7 @@ int main(void)
             UpdateLocalBean(&bean);
         } else if (connected) {
             // they hate us sadge
-            Connect("127.0.0.1");
+            Connect(argv[1]);
             connected = false;
         }
         Update(GetTime(), GetFrameTime(), &bean);
@@ -236,7 +238,7 @@ int main(void)
             EndMode3D();
 
             // Draw info boxes
-            DrawRectangle(5, 5, 330, 70, Fade(RED, 0.5f));
+            DrawRectangle(5, 5, 330, 85, Fade(RED, 0.5f));
             DrawRectangleLines(5, 5, 330, 85, BLUE);
 
             DrawText("Player controls:", 15, 15, 10, BLACK);
@@ -285,9 +287,9 @@ void Connect(const char* serverAddress)
 Vector3 ReadPosition(ENetPacket* packet, size_t* offset)
 {
 	Vector3 pos = { 0 };
-	pos.x = ReadShort(packet, offset);
-	pos.y = ReadShort(packet, offset);
-    pos.z = ReadShort(packet, offset);
+	pos.x = ReadFloat(packet, offset);
+	pos.y = ReadFloat(packet, offset);
+    pos.z = ReadFloat(packet, offset);
 
 	return pos;
 }
@@ -311,10 +313,12 @@ void HandleAddPlayer(ENetPacket* packet, size_t* offset)
 		return;
 
 	// set them as active and update the location
+	printf("Bean %d added\n", remotePlayer);
 	beans[remotePlayer].position = ReadPosition(packet, offset);
     beans[remotePlayer].beanColor = ReadColor(packet, offset);
     beans[remotePlayer].active = true;
 	beans[remotePlayer].updateTime = LastNow;
+	printf("Bean %d position: x=%f, y=%f, z=%f\n", remotePlayer, beans[remotePlayer].position.x, beans[remotePlayer].position.y, beans[remotePlayer].position.z);
 
 	// In a more robust game, this message would have more info about the new player, such as what sprite or model to use, player name, or other data a client would need
 	// this is where static data about the player would be sent, and any initial state needed to setup the local simulation
@@ -329,6 +333,7 @@ void HandleRemovePlayer(ENetPacket* packet, size_t* offset)
 		return;
 
 	// remove the player from the simulation. No other data is needed except the player id
+	printf("Bean %d removed\n", remotePlayer); // they may be black
 	beans[remotePlayer].active = false;
 }
 
@@ -341,6 +346,7 @@ void HandleUpdatePlayer(ENetPacket* packet, size_t* offset)
 		return;
 
 	// update the last known position and movement
+	//printf("Bean %d update\n", remotePlayer);
 	beans[remotePlayer].position = ReadPosition(packet, offset);
     beans[remotePlayer].beanColor = ReadColor(packet, offset);
 	beans[remotePlayer].updateTime = LastNow;
@@ -364,18 +370,18 @@ void Update(double now, float deltaT, LocalBean* bean)
 	if (LocalPlayerId >= 0 && now - LastInputSend > InputUpdateInterval)
 	{
 		// Pack up a buffer with the data we want to send
-		uint8_t buffer[11] = { 0 }; // 10 bytes for a 1 byte command number and two bytes for each X and Y value
+		uint8_t buffer[17] = { 0 }; // 10 bytes for a 1 byte command number and two bytes for each X and Y value
 		buffer[0] = (uint8_t)UpdateInput;   // this tells the server what kind of data to expect in this packet
-		*(int16_t*)(buffer + 1) = (int16_t)beans[LocalPlayerId].position.x;
-		*(int16_t*)(buffer + 3) = (int16_t)beans[LocalPlayerId].position.y;
-		*(int16_t*)(buffer + 5) = (int16_t)beans[LocalPlayerId].position.z;
-        *(uint8_t*)(buffer + 7) = (uint8_t)beans[LocalPlayerId].beanColor.r;
-        *(uint8_t*)(buffer + 8) = (uint8_t)beans[LocalPlayerId].beanColor.g;
-        *(uint8_t*)(buffer + 9) = (uint8_t)beans[LocalPlayerId].beanColor.b;
-        *(uint8_t*)(buffer + 10) = (uint8_t)beans[LocalPlayerId].beanColor.a;
+		*(float*)(buffer + 1) = (float)beans[LocalPlayerId].position.x;
+		*(float*)(buffer + 5) = (float)beans[LocalPlayerId].position.y;
+		*(float*)(buffer + 9) = (float)beans[LocalPlayerId].position.z;
+        *(uint8_t*)(buffer + 13) = (uint8_t)beans[LocalPlayerId].beanColor.r;
+        *(uint8_t*)(buffer + 14) = (uint8_t)beans[LocalPlayerId].beanColor.g;
+        *(uint8_t*)(buffer + 15) = (uint8_t)beans[LocalPlayerId].beanColor.b;
+        *(uint8_t*)(buffer + 16) = (uint8_t)beans[LocalPlayerId].beanColor.a;
 
         // copy this data into a packet provided by enet (TODO : add pack functions that write directly to the packet to avoid the copy)
-		ENetPacket* packet = enet_packet_create(buffer, 11, ENET_PACKET_FLAG_RELIABLE);
+		ENetPacket* packet = enet_packet_create(buffer, 17, ENET_PACKET_FLAG_RELIABLE);
 
 		// send the packet to the server
 		enet_peer_send(server, 0, packet);
@@ -415,6 +421,7 @@ void Update(double now, float deltaT, LocalBean* bean)
 					{
 						// See who the server says we are
 						LocalPlayerId = ReadByte(Event.packet, &offset);
+						printf("Local ID = %d\n", LocalPlayerId);
 
 						// Make sure that it makes sense
 						if (LocalPlayerId < 0 || LocalPlayerId > MAX_PLAYERS)
@@ -507,6 +514,7 @@ bool GetPlayerPos(int id, Vector3* pos)
 		return false;
 
 	*pos = beans[id].position;
+	return true;
 }
 
 void UpdatePlayerList(LocalBean* bean) {

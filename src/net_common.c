@@ -80,3 +80,17 @@ int16_t ReadShort(ENetPacket* packet, size_t* offset)
 	// cast the data pointer to a short and return a copy
 	return *(int16_t*)data;
 }
+
+float ReadFloat(ENetPacket* packet, size_t* offset)
+{
+	if(*offset > packet->dataLength)
+		return 0;
+
+	uint8_t* data = (uint8_t*)packet->data;
+	data += (*offset);
+
+	*offset = (*offset) + 4;
+
+	return *(float*)data;
+}
+

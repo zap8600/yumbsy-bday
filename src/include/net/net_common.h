@@ -59,3 +59,5 @@ uint8_t ReadByte(ENetPacket* packet, size_t* offset);
 /// <param name="offset">A pointer to an offset that is updated, this should be passed to other read functions so they read from the correct place</param>
 /// <returns>The signed short that is read</returns>
 int16_t ReadShort(ENetPacket* packet, size_t* offset);
+
+float ReadFloat(ENetPacket* packet, size_t* offset);
