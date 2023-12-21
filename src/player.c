@@ -131,7 +131,7 @@ void BeanPitch(LocalBean* bean, float angle, bool lockView, bool rotateAroundTar
 #define BEAN_MOVE_SPEED 0.09f
 #define CAMERA_MOUSE_SPEED 0.003f
 
-void UpdateLocalBean(LocalBean* bean, raylib_syms *sym) {
+void UpdateLocalBean(LocalBean* bean, struct raylib_syms *sym) {
     Vector2 mousePositionDelta = sym->GetMouseDelta();
 
     bool moveInWorldPlane = ((bean->cameraMode == CAMERA_FIRST_PERSON) || (bean->cameraMode == CAMERA_THIRD_PERSON));

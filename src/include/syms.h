@@ -1,7 +1,7 @@
 #include <stdbool.h>
 #include "rlh/raylib.h"
 
-typedef struct raylib_syms {
+struct raylib_syms {
     void *lib;
     int (*GetRandomValue)(int min, int max);
     void (*DrawPlane)(Vector3 centerPos, Vector2 size, Color color);
@@ -33,4 +33,4 @@ typedef struct raylib_syms {
     void (*PlayMusicStream)(Music music);
     void (*StopMusicStream)(Music music);
     void (*UpdateMusicStream)(Music music);
-} raylib_syms;
+};
