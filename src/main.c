@@ -22,27 +22,6 @@
 
 #define MAX_COLUMNS 10
 
-int LocalPlayerId = -1;
-
-Bean beans[MAX_PLAYERS] = { 0 };
-
-// the enet address we are connected to
-ENetAddress address = { 0 };
-
-// the server object we are connecting to
-ENetPeer* server = { 0 };
-
-// the client peer we are using
-ENetHost* client = { 0 };
-
-// how long in seconds since the last time we sent an update
-double LastInputSend = -100;
-
-// how long to wait between updates (20 update ticks a second)
-double InputUpdateInterval = 1.0f / 20.0f;
-
-double LastNow = 0;
-
 LocalBean bean = { 0 };
 
 //------------------------------------------------------------------------------------
@@ -65,7 +44,7 @@ int main(int argc, char *argv[])
     bean.camera.fovy = 60.0f;                                // Camera field-of-view Y
     bean.camera.projection = CAMERA_PERSPECTIVE;             // Camera projection type
     bean.cameraMode = CAMERA_FIRST_PERSON;
-    UpdateCameraWithBean(&bean, sym);
+    UpdateCameraWithBean(&bean);
 
     // Generates some random columns
     float heights[MAX_COLUMNS] = { 0 };
@@ -120,7 +99,7 @@ int main(int argc, char *argv[])
             if(bean.cameraMode != CAMERA_FIRST_PERSON) {
                 bean.cameraMode = CAMERA_FIRST_PERSON;
                 bean.up = (Vector3){ 0.0f, 1.0f, 0.0f }; // Reset roll
-                UpdateCameraWithBean(&bean, sym);
+                UpdateCameraWithBean(&bean);
                 //updateBeanCollide(&camera, cameraMode);
             }
         }
@@ -130,7 +109,7 @@ int main(int argc, char *argv[])
             if(bean.cameraMode != CAMERA_THIRD_PERSON) {
                 bean.cameraMode = CAMERA_THIRD_PERSON;
                 bean.up = (Vector3){ 0.0f, 1.0f, 0.0f }; // Reset roll
-                UpdateCameraWithBean(&bean, sym);
+                UpdateCameraWithBean(&bean);
                 //updateBeanCollide(&camera, cameraMode);
             }
         }
@@ -140,21 +119,31 @@ int main(int argc, char *argv[])
             // setup client
             if(!client) {
                 client = true;
-                Connect("127.0.0.1");
+                Connect("172.233.208.111"); // bean game server dont ddos pls
             }
+        }
+        
+        if ((IsKeyPressed(KEY_FOUR)))
+        {
+            EnableCursor();
+        }
+        
+        if ((IsKeyPressed(KEY_FIVE)))
+        {
+            DisableCursor();
         }
 
         //UpdateLocalBean(&bean);
         
         if (Connected()) {
             connected = true;
-            UpdateLocalBean(&bean, sym);
+            UpdateLocalBean(&bean);
         } else if (connected) {
             // they hate us sadge
-            Connect("127.0.0.1");
+            Connect("172.233.208.111");
             connected = false;
         }
-        Update(GetTime(), GetFrameTime(), &bean);
+        Update(GetTime(), GetFrameTime());
 
         //----------------------------------------------------------------------------------
 
@@ -172,10 +161,10 @@ int main(int argc, char *argv[])
                     //DrawText("Connecting", 15, 75, 10, BLACK);
                 } else {
                     //DrawText(TextFormat("Player %d", GetLocalPlayerId()), 15, 75, 10, BLACK);
-                    printf("Bean %d position: x=%f, y=%f, z=%f\n", LocalPlayerId, bean.transform.translation.x, bean.transform.translation.y, bean.transform.translation.z);
+                    //printf("Bean %d position: x=%f, y=%f, z=%f\n", LocalPlayerId, bean.transform.translation.x, bean.transform.translation.y, bean.transform.translation.z);
 
                     for (int i = 0; i < MAX_PLAYERS; i++) {
-                        if(i != LocalPlayerId) {
+                        if(i != GetLocalPlayerId()) {
                             Vector3 pos = { 0 };
                             uint8_t r;
                             uint8_t g;
@@ -258,7 +247,7 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-void UpdatePlayer(Vector3 pos, Vector3 tar) {
+void UpdateTheBigBean(Vector3 pos, Vector3 tar) {
     bean.transform.translation = pos;
     bean.target = tar;
 }

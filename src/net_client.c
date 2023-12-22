@@ -1,7 +1,40 @@
 #include "net/net_client.h"
+#include <stdio.h>
 
 #define ENET_IMPLEMENTATION
 #include "net/net_common.h"
+
+int LocalPlayerId = -1;
+
+// the enet address we are connected to
+ENetAddress address = { 0 };
+
+// the server object we are connecting to
+ENetPeer* server = { 0 };
+
+// the client peer we are using
+ENetHost* client = { 0 };
+
+// how long in seconds since the last time we sent an update
+double LastInputSend = -100;
+
+// how long to wait between updates (20 update ticks a second)
+double InputUpdateInterval = 1.0f / 20.0f;
+
+double LastNow = 0;
+
+// this struct wont be used until networking is added
+typedef struct Bean {
+    Vector3 position; // player position
+    unsigned char r; // replacements
+    unsigned char g; // for
+    unsigned char b; // color
+    unsigned char a; // type
+    bool active; // are they awake
+    double updateTime; // time of last update
+} Bean;
+
+Bean beans[MAX_PLAYERS] = { 0 };
 
 // Connect to a server
 void Connect(const char* serverAddress)
@@ -174,7 +207,7 @@ void Update(double now, float deltaT)
 						// But for this simple test, everyone starts at the same place on the field
 						beans[LocalPlayerId].position = (Vector3){ 0.0f, 1.7f, 4.0f };    // Camera position
                         //bean->target = (Vector3){ 0.0f, 1.7f, 0.0f };      // Camera looking at point
-                        UpdatePlayer(beans[LocalPlayerId].position, (Vector3){ 0.0f, 1.7f, 0.0f });
+                        UpdateTheBigBean(beans[LocalPlayerId].position, (Vector3){ 0.0f, 1.7f, 0.0f });
 					}
 				}
                 else // we have been accepted, so process play messages from the server
@@ -256,7 +289,7 @@ bool GetPlayerR(int id, unsigned char* r)
 	if (id < 0 || id >= MAX_PLAYERS || !beans[id].active)
 		return false;
 
-	*pos = beans[id].r;
+	*r = beans[id].r;
 	return true;
 }
 
@@ -267,7 +300,7 @@ bool GetPlayerG(int id, unsigned char* g)
 	if (id < 0 || id >= MAX_PLAYERS || !beans[id].active)
 		return false;
 
-	*pos = beans[id].g;
+	*g = beans[id].g;
 	return true;
 }
 
@@ -278,7 +311,7 @@ bool GetPlayerB(int id, unsigned char* b)
 	if (id < 0 || id >= MAX_PLAYERS || !beans[id].active)
 		return false;
 
-	*pos = beans[id].b;
+	*b = beans[id].b;
 	return true;
 }
 
@@ -289,7 +322,7 @@ bool GetPlayerA(int id, unsigned char* a)
 	if (id < 0 || id >= MAX_PLAYERS || !beans[id].active)
 		return false;
 
-	*pos = beans[id].a;
+	*a = beans[id].a;
 	return true;
 }
 

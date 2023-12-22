@@ -5,7 +5,7 @@
 #include "net/net_client.h"
 #include <stdio.h>
 
-void UpdateCameraWithBean(LocalBean* bean, struct raylib_syms *sym) {
+void UpdateCameraWithBean(LocalBean* bean) {
     if(bean->cameraMode == CAMERA_FIRST_PERSON) {
         bean->camera.position = bean->transform.translation;
         bean->camera.target = bean->target;
@@ -18,25 +18,25 @@ void UpdateCameraWithBean(LocalBean* bean, struct raylib_syms *sym) {
     }
 }
 
-Vector3 GetBeanForward(LocalBean* bean, struct raylib_syms *sym) {
+Vector3 GetBeanForward(LocalBean* bean) {
     return Vector3Normalize(Vector3Subtract(bean->target, bean->transform.translation));
 }
 
-Vector3 GetBeanUp(LocalBean* bean, struct raylib_syms *sym)
+Vector3 GetBeanUp(LocalBean* bean)
 {
     return Vector3Normalize(bean->up);
 }
 
-Vector3 GetBeanRight(LocalBean* bean, struct raylib_syms *sym)
+Vector3 GetBeanRight(LocalBean* bean)
 {
-    Vector3 forward = GetBeanForward(bean, sym);
-    Vector3 up = GetBeanUp(bean, sym);
+    Vector3 forward = GetBeanForward(bean);
+    Vector3 up = GetBeanUp(bean);
 
     return Vector3CrossProduct(forward, up);
 }
 
-void BeanMoveForward(LocalBean* bean, float distance, bool moveInWorldPlane, struct raylib_syms *sym) {
-    Vector3 forward = GetBeanForward(bean, sym);
+void BeanMoveForward(LocalBean* bean, float distance, bool moveInWorldPlane) {
+    Vector3 forward = GetBeanForward(bean);
 
     if (moveInWorldPlane)
     {
@@ -50,12 +50,12 @@ void BeanMoveForward(LocalBean* bean, float distance, bool moveInWorldPlane, str
 
     bean->transform.translation = Vector3Add(bean->transform.translation, forward);
     bean->target = Vector3Add(bean->target, forward);
-    UpdateCameraWithBean(bean, sym);
+    UpdateCameraWithBean(bean);
 }
 
-void BeanMoveRight(LocalBean* bean, float distance, bool moveInWorldPlane, struct raylib_syms *sym)
+void BeanMoveRight(LocalBean* bean, float distance, bool moveInWorldPlane)
 {
-    Vector3 right = GetBeanRight(bean, sym);
+    Vector3 right = GetBeanRight(bean);
 
     if (moveInWorldPlane)
     {
@@ -70,13 +70,13 @@ void BeanMoveRight(LocalBean* bean, float distance, bool moveInWorldPlane, struc
     // Move position and target
     bean->transform.translation = Vector3Add(bean->transform.translation, right);
     bean->target = Vector3Add(bean->target, right);
-    UpdateCameraWithBean(bean, sym);
+    UpdateCameraWithBean(bean);
 }
 
-void BeanYaw(LocalBean* bean, float angle, bool rotateAroundTarget, struct raylib_syms *sym)
+void BeanYaw(LocalBean* bean, float angle, bool rotateAroundTarget)
 {
     // Rotation axis
-    Vector3 up = GetBeanUp(bean, sym);
+    Vector3 up = GetBeanUp(bean);
 
     // View vector
     Vector3 targetPosition = Vector3Subtract(bean->target, bean->transform.translation);
@@ -86,13 +86,13 @@ void BeanYaw(LocalBean* bean, float angle, bool rotateAroundTarget, struct rayli
 
     bean->target = Vector3Add(bean->transform.translation, targetPosition);
     
-    UpdateCameraWithBean(bean, sym);
+    UpdateCameraWithBean(bean);
 }
 
-void BeanPitch(LocalBean* bean, float angle, bool lockView, bool rotateAroundTarget, bool rotateUp, struct raylib_syms *sym)
+void BeanPitch(LocalBean* bean, float angle, bool lockView, bool rotateAroundTarget, bool rotateUp)
 {
     // Up direction
-    Vector3 up = GetBeanUp(bean, sym);
+    Vector3 up = GetBeanUp(bean);
 
     // View vector
     Vector3 targetPosition = Vector3Subtract(bean->target, bean->transform.translation);
@@ -115,7 +115,7 @@ void BeanPitch(LocalBean* bean, float angle, bool lockView, bool rotateAroundTar
     }
 
     // Rotation axis
-    Vector3 right = GetBeanRight(bean, sym);
+    Vector3 right = GetBeanRight(bean);
 
     // Rotate view vector around right axis
     targetPosition = Vector3RotateByAxisAngle(targetPosition, right, angle);
@@ -127,13 +127,13 @@ void BeanPitch(LocalBean* bean, float angle, bool lockView, bool rotateAroundTar
         // Rotate up direction around right axis
         bean->up = Vector3RotateByAxisAngle(bean->up, right, angle);
     }
-    UpdateCameraWithBean(bean, sym);
+    UpdateCameraWithBean(bean);
 }
 
 #define BEAN_MOVE_SPEED 0.09f
 #define CAMERA_MOUSE_SPEED 0.003f
 
-void UpdateLocalBean(LocalBean* bean, struct raylib_syms *sym) {
+void UpdateLocalBean(LocalBean* bean) {
     Vector2 mousePositionDelta = GetMouseDelta();
 
     bool moveInWorldPlane = ((bean->cameraMode == CAMERA_FIRST_PERSON) || (bean->cameraMode == CAMERA_THIRD_PERSON));
@@ -141,13 +141,13 @@ void UpdateLocalBean(LocalBean* bean, struct raylib_syms *sym) {
     bool lockView = ((bean->cameraMode == CAMERA_FREE) || (bean->cameraMode == CAMERA_FIRST_PERSON) || (bean->cameraMode == CAMERA_THIRD_PERSON) || (bean->cameraMode == CAMERA_ORBITAL));
     bool rotateUp = false;
 
-    BeanYaw(bean, -mousePositionDelta.x*CAMERA_MOUSE_SPEED, rotateAroundTarget, sym);
-    BeanPitch(bean, -mousePositionDelta.y*CAMERA_MOUSE_SPEED, lockView, rotateAroundTarget, rotateUp, sym);
+    BeanYaw(bean, -mousePositionDelta.x*CAMERA_MOUSE_SPEED, rotateAroundTarget);
+    BeanPitch(bean, -mousePositionDelta.y*CAMERA_MOUSE_SPEED, lockView, rotateAroundTarget, rotateUp);
 
-    if (IsKeyDown(KEY_W)) BeanMoveForward(bean, BEAN_MOVE_SPEED, moveInWorldPlane, sym);
-    if (IsKeyDown(KEY_A)) BeanMoveRight(bean, -BEAN_MOVE_SPEED, moveInWorldPlane, sym);
-    if (IsKeyDown(KEY_S)) BeanMoveForward(bean, -BEAN_MOVE_SPEED, moveInWorldPlane, sym);
-    if (IsKeyDown(KEY_D)) BeanMoveRight(bean, BEAN_MOVE_SPEED, moveInWorldPlane, sym);
+    if (IsKeyDown(KEY_W)) BeanMoveForward(bean, BEAN_MOVE_SPEED, moveInWorldPlane);
+    if (IsKeyDown(KEY_A)) BeanMoveRight(bean, -BEAN_MOVE_SPEED, moveInWorldPlane);
+    if (IsKeyDown(KEY_S)) BeanMoveForward(bean, -BEAN_MOVE_SPEED, moveInWorldPlane);
+    if (IsKeyDown(KEY_D)) BeanMoveRight(bean, BEAN_MOVE_SPEED, moveInWorldPlane);
 
     bean->beanCollide = (BoundingBox){
                         (Vector3){bean->transform.translation.x - 0.7f, bean->transform.translation.y - 1.7f, bean->transform.translation.z - 0.7f},
